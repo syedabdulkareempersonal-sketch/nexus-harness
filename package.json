@@ -6,6 +6,11 @@
   "main": "dist-electron/main.cjs",
   "author": "AuraDesk Open Source Contributors",
   "license": "MIT",
+  "homepage": "https://github.com/syedabdulkareempersonal-sketch/nexus-harness#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/syedabdulkareempersonal-sketch/nexus-harness.git"
+  },
   "private": false,
   "scripts": {
     "dev:renderer": "vite",

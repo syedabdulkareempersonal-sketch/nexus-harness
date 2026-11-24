@@ -6,9 +6,9 @@
   **Your calm, private AI desktop workspace — ready in one click.**  
   *No terminal. No Docker. No raw JSON config files. Ever.*
 
-  [![Download for Windows](https://img.shields.io/badge/Download-Windows_.exe-B44D1B?style=for-the-badge&logo=windows&logoColor=white)](../../releases/latest)
-  [![Download for macOS](https://img.shields.io/badge/Download-macOS_Universal_.dmg-18181B?style=for-the-badge&logo=apple&logoColor=white)](../../releases/latest)
-  [![Download for Linux](https://img.shields.io/badge/Download-Linux_.AppImage-186E4B?style=for-the-badge&logo=linux&logoColor=white)](../../releases/latest)
+  [![Download for Windows](https://img.shields.io/badge/Download-Windows_.exe-B44D1B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/syedabdulkareempersonal-sketch/nexus-harness/releases/latest)
+  [![Download for macOS](https://img.shields.io/badge/Download-macOS_Universal_.dmg-18181B?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/syedabdulkareempersonal-sketch/nexus-harness/releases/latest)
+  [![Download for Linux](https://img.shields.io/badge/Download-Linux_.AppImage-186E4B?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/syedabdulkareempersonal-sketch/nexus-harness/releases/latest)
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![100% Local SQLite](https://img.shields.io/badge/Data-100%25_Local_SQLite-emerald)](SPEC.md)
@@ -75,7 +75,7 @@ flowchart LR
 ## 60-Second Quickstart
 
 ### For Everyday Users (Zero Terminal)
-1. Go to the [**Releases**](../../releases/latest) page.
+1. Go to the [**Releases**](https://github.com/syedabdulkareempersonal-sketch/nexus-harness/releases/latest) page.
 2. Download the 1-click installer for your computer:
    - **Windows:** `AuraDesk-Setup-1.0.0.exe`
    - **macOS (Apple Silicon & Intel Universal):** `AuraDesk-1.0.0-Universal.dmg`
@@ -85,8 +85,8 @@ flowchart LR
 ### For Developers & Contributors
 ```bash
 # 1. Clone and install dependencies
-git clone https://github.com/YOUR_USERNAME/auradesk.git
-cd auradesk
+git clone https://github.com/syedabdulkareempersonal-sketch/nexus-harness.git
+cd nexus-harness
 npm install --foreground-scripts
 
 # 2. Build icons, React studio, and Electron bundles, then launch
@@ -109,7 +109,7 @@ npm run dist:linux  # Linux .AppImage
 AuraDesk includes a pre-configured GitHub Actions pipeline in [`.github/workflows/release.yml`](.github/workflows/release.yml). Pushing any `v*` tag automatically builds and attaches the Windows `.exe`, macOS Universal `.dmg`, and Linux `.AppImage` installers to a public GitHub Release:
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/auradesk.git
+git remote add origin https://github.com/syedabdulkareempersonal-sketch/nexus-harness.git
 git push -u origin main
 git tag v1.0.0
 git push origin v1.0.0

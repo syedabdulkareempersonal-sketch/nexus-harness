@@ -140,7 +140,7 @@ export class AiRouter {
         apiKey,
         baseURL: baseUrl || 'https://openrouter.ai/api/v1',
         headers: {
-          'HTTP-Referer': 'https://github.com/auradesk/auradesk',
+          'HTTP-Referer': 'https://github.com/syedabdulkareempersonal-sketch/nexus-harness',
           'X-Title': 'AuraDesk',
         },
       });
