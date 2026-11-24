@@ -1,0 +1,78 @@
+name: Build & Publish AuraDesk Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform_flag: --win nsis
+            artifact_glob: 'release/*.exe'
+          - os: macos-latest
+            platform_flag: --mac dmg --universal
+            artifact_glob: 'release/*.dmg'
+          - os: ubuntu-latest
+            platform_flag: --linux AppImage
+            artifact_glob: 'release/*.AppImage'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Linux packaging libraries
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 rpm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck & Run Core Test Suite
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Build Icons, Renderer, and Electron Main
+        run: npm run build
+
+      - name: Package 1-Click Desktop Installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder ${{ matrix.platform_flag }} --publish never
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: ${{ matrix.artifact_glob }}
+
+      - name: Attach Binaries to Public GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact_glob }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

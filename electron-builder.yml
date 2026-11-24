@@ -1,0 +1,64 @@
+appId: org.auradesk.desktop
+productName: AuraDesk
+copyright: Copyright © 2026 AuraDesk Open Source Contributors
+
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - build/icon.png
+  - build/icon.ico
+  - package.json
+  - '!node_modules/**/*'
+
+asar: true
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: AuraDesk-Setup-${version}-Windows.${ext}
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: AuraDesk
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch:
+        - universal
+  artifactName: AuraDesk-${version}-macOS-Universal.${ext}
+
+dmg:
+  sign: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+linux:
+  category: Office;Utility;
+  icon: build/icon.png
+  synopsis: Zero-friction AI desktop workspace with visual superpowers and local memory.
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  artifactName: AuraDesk-${version}-Linux-x86_64.${ext}

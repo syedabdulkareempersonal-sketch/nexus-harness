@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="64" y1="40" x2="448" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#221D1A"/>
+      <stop offset="55%" stop-color="#171514"/>
+      <stop offset="100%" stop-color="#101114"/>
+    </linearGradient>
+    <linearGradient id="auraOuter" x1="140" y1="108" x2="372" y2="356" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F59E6C"/>
+      <stop offset="50%" stop-color="#D96B34"/>
+      <stop offset="100%" stop-color="#9A3F17"/>
+    </linearGradient>
+    <linearGradient id="auraCore" x1="200" y1="160" x2="312" y2="288" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF7F0"/>
+      <stop offset="100%" stop-color="#F6B98E"/>
+    </linearGradient>
+    <linearGradient id="deskPlane" x1="96" y1="336" x2="416" y2="404" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FAF6F2"/>
+      <stop offset="100%" stop-color="#D7CEC4"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGrad)"/>
+  <rect x="26" y="26" width="460" height="460" rx="110" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="4"/>
+  <!-- Outer Luminous Aperture Ring -->
+  <circle cx="256" cy="226" r="118" stroke="url(#auraOuter)" stroke-width="26" stroke-opacity="0.92"/>
+  <!-- Inner Harmonic Ring -->
+  <circle cx="256" cy="226" r="68" fill="url(#auraCore)"/>
+  <!-- Grounded Desk Horizon Plane -->
+  <path d="M116 352C116 340.954 124.954 332 136 332H376C387.046 332 396 340.954 396 352V362C396 380.778 380.778 396 362 396H150C131.222 396 116 380.778 116 362V352Z" fill="url(#deskPlane)"/>
+  <!-- Subtle Desk Reflection Accent -->
+  <rect x="176" y="356" width="160" height="12" rx="6" fill="#B8501E" fill-opacity="0.55"/>
+</svg>
