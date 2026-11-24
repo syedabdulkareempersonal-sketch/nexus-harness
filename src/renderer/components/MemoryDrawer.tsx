@@ -70,12 +70,12 @@ export const MemoryDrawer: React.FC<MemoryDrawerProps> = ({
     <AnimatePresence>
       {open && (
         <motion.aside
-          initial={{ opacity: 0, transform: 'translateX(24px)' }}
-          animate={{ opacity: 1, transform: 'translateX(0px)' }}
-          exit={{ opacity: 0, transform: 'translateX(24px)' }}
-          transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 16 }}
+          transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
           aria-label="What AuraDesk Remembers About You"
-          className="flex h-full w-80 shrink-0 flex-col border-l border-hairline bg-surface xl:w-96"
+          className="win12-island flex h-full w-80 shrink-0 flex-col overflow-hidden rounded-2xl xl:w-96"
         >
           <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
             <div className="flex items-center gap-2.5">
@@ -176,7 +176,7 @@ export const MemoryDrawer: React.FC<MemoryDrawerProps> = ({
                     }`}
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="rounded-md bg-surface/80 px-2 py-0.5 text-[11px] font-medium text-ink-secondary">
+                      <span className="rounded-md bg-elevated px-2 py-0.5 text-[11px] font-medium text-ink-secondary">
                         {item.category}
                       </span>
                       <div className="flex items-center gap-1">

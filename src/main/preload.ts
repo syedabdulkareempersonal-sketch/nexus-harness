@@ -6,6 +6,7 @@ const bridge: AuraDeskBridge = {
   updateSettings: (partial) => ipcRenderer.invoke('auradesk:update-settings', partial),
 
   verifyAndSaveProvider: (input) => ipcRenderer.invoke('auradesk:verify-provider', input),
+  disconnectProvider: (providerId) => ipcRenderer.invoke('auradesk:disconnect-provider', providerId),
   detectOllama: (customBaseUrl) => ipcRenderer.invoke('auradesk:detect-ollama', customBaseUrl),
   selectActiveProvider: (providerId, model) =>
     ipcRenderer.invoke('auradesk:select-active-provider', providerId, model),
@@ -60,6 +61,11 @@ const bridge: AuraDeskBridge = {
   deleteArtifact: (id) => ipcRenderer.invoke('auradesk:delete-artifact', id),
   exportArtifact: (artifactId, format) =>
     ipcRenderer.invoke('auradesk:export-artifact', artifactId, format),
+
+  windowMinimize: () => ipcRenderer.invoke('auradesk:window-minimize'),
+  windowToggleMaximize: () => ipcRenderer.invoke('auradesk:window-toggle-maximize'),
+  windowClose: () => ipcRenderer.invoke('auradesk:window-close'),
+  windowIsMaximized: () => ipcRenderer.invoke('auradesk:window-is-maximized'),
 
   openExternalUrl: (url) => ipcRenderer.invoke('auradesk:open-external', url),
 };

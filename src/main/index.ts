@@ -27,12 +27,14 @@ function getIconPath(): string | undefined {
 
 async function createMainWindow(): Promise<BrowserWindow> {
   const win = new BrowserWindow({
-    width: 1360,
-    height: 860,
-    minWidth: 980,
-    minHeight: 640,
+    width: 1400,
+    height: 880,
+    minWidth: 1020,
+    minHeight: 660,
     title: 'AuraDesk',
-    backgroundColor: '#FAF8F5',
+    frame: process.platform === 'darwin',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    backgroundColor: '#ECF1F8',
     icon: getIconPath(),
     autoHideMenuBar: true,
     show: !isSmokeVerify,
@@ -41,6 +43,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: !isSmokeVerify,
     },
   });
 
@@ -95,7 +98,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
               });
             })()
           `);
-          await new Promise((r) => setTimeout(r, 1800));
+          await new Promise((r) => setTimeout(r, 2400));
         }
 
         const domCheck = await win.webContents.executeJavaScript(`
@@ -113,6 +116,37 @@ async function createMainWindow(): Promise<BrowserWindow> {
           })()
         `);
         if (smokeReportPath) {
+          const screenshotDir = process.env.AURADESK_SMOKE_SCREENSHOT_DIR;
+          if (screenshotDir) {
+            fs.mkdirSync(screenshotDir, { recursive: true });
+            const workspaceShot = await win.webContents.capturePage();
+            fs.writeFileSync(path.join(screenshotDir, 'win12-workspace.png'), workspaceShot.toPNG());
+
+            // Open AI Engines modal and capture screenshot
+            await win.webContents.executeJavaScript(`
+              (() => {
+                const btns = Array.from(document.querySelectorAll('button'));
+                const engineBtn = btns.find(b => b.textContent && b.textContent.includes('AI Engines'));
+                if (engineBtn) engineBtn.click();
+              })()
+            `);
+            await new Promise((r) => setTimeout(r, 400));
+            const settingsShot = await win.webContents.capturePage();
+            fs.writeFileSync(path.join(screenshotDir, 'win12-ai-engines.png'), settingsShot.toPNG());
+
+            // Switch to Midnight Mica Dark Mode and capture screenshot
+            await win.webContents.executeJavaScript(`
+              (() => {
+                const closeBtn = document.querySelector('button[aria-label="Close AI Engines dialog"]');
+                if (closeBtn instanceof HTMLElement) closeBtn.click();
+                document.documentElement.classList.add('dark');
+              })()
+            `);
+            await new Promise((r) => setTimeout(r, 500));
+            const darkShot = await win.webContents.capturePage();
+            fs.writeFileSync(path.join(screenshotDir, 'win12-midnight.png'), darkShot.toPNG());
+          }
+
           fs.writeFileSync(
             smokeReportPath,
             JSON.stringify(

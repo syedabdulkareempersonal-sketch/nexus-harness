@@ -5,7 +5,7 @@ interface BrandLogoProps {
   className?: string;
 }
 
-export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 34, className = '' }) => {
+export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 30, className = '' }) => {
   return (
     <svg
       width={size}
@@ -17,35 +17,36 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 34, className = '' 
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="auraLogoBg" x1="8" y1="5" x2="56" y2="59" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#26201C" />
-          <stop offset="55%" stopColor="#171514" />
-          <stop offset="100%" stopColor="#101114" />
+        <linearGradient id="win12Bg" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0F2547" />
+          <stop offset="52%" stopColor="#0B1930" />
+          <stop offset="100%" stopColor="#08101E" />
         </linearGradient>
-        <linearGradient id="auraLogoRing" x1="18" y1="14" x2="46" y2="44" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#F59E6C" />
-          <stop offset="50%" stopColor="#D96B34" />
-          <stop offset="100%" stopColor="#9A3F17" />
+        <linearGradient id="win12Ring" x1="16" y1="12" x2="48" y2="46" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#60D5FF" />
+          <stop offset="50%" stopColor="#2589F5" />
+          <stop offset="100%" stopColor="#005FB8" />
         </linearGradient>
-        <linearGradient id="auraLogoCore" x1="25" y1="20" x2="39" y2="36" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFF7F0" />
-          <stop offset="100%" stopColor="#F6B98E" />
+        <linearGradient id="win12Core" x1="24" y1="20" x2="40" y2="37" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F0FAFF" />
+          <stop offset="100%" stopColor="#7DD3FC" />
         </linearGradient>
       </defs>
-      <rect x="3" y="3" width="58" height="58" rx="14" fill="url(#auraLogoBg)" />
+      <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#win12Bg)" />
       <rect
         x="3.5"
         y="3.5"
         width="57"
         height="57"
-        rx="13.5"
-        stroke="#FFFFFF"
-        strokeOpacity="0.14"
+        rx="14.5"
+        stroke="#7DD3FC"
+        strokeOpacity="0.24"
       />
-      <circle cx="32" cy="28.5" r="14.5" stroke="url(#auraLogoRing)" strokeWidth="3.4" />
-      <circle cx="32" cy="28.5" r="8.4" fill="url(#auraLogoCore)" />
-      <rect x="14.5" y="41.5" width="35" height="8" rx="4" fill="#F7F3EE" />
-      <rect x="22" y="44.2" width="20" height="2.4" rx="1.2" fill="#B8501E" fillOpacity="0.65" />
+      {/* Fluent 4-quadrant subtle glass grid nod + luminous aperture */}
+      <circle cx="32" cy="28" r="14.2" stroke="url(#win12Ring)" strokeWidth="3.5" />
+      <circle cx="32" cy="28" r="7.8" fill="url(#win12Core)" />
+      <rect x="14.5" y="42.5" width="35" height="7.5" rx="3.75" fill="#E2EEFF" />
+      <rect x="22.5" y="45" width="19" height="2.4" rx="1.2" fill="#005FB8" />
     </svg>
   );
 };

@@ -165,7 +165,7 @@ export const SuperpowersStore: React.FC<SuperpowersStoreProps> = ({
   };
 
   return (
-    <div className="h-full flex-1 overflow-y-auto px-6 py-8 sm:px-10">
+    <div className="win12-island h-full flex-1 overflow-y-auto rounded-2xl px-6 py-8 sm:px-10">
       <div className="mx-auto max-w-4xl space-y-10">
         <div>
           <h1 className="text-2xl font-semibold text-ink">Superpowers &amp; App Connectors</h1>
@@ -580,7 +580,7 @@ export const SuperpowersStore: React.FC<SuperpowersStoreProps> = ({
 
           {/* Connected Custom MCP Servers List */}
           {mcpServers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-strongline bg-surface/50 p-7 text-center">
+            <div className="rounded-2xl border border-dashed border-strongline bg-surface p-7 text-center">
               <Plug className="mx-auto h-6 w-6 text-ink-muted" strokeWidth={1.7} />
               <p className="mt-2 text-sm font-medium text-ink">No custom connectors added yet</p>
               <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-ink-secondary">

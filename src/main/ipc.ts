@@ -178,6 +178,18 @@ export function registerIpcHandlers(params: {
     return aiRouter.verifyAndSaveProvider(input);
   });
 
+  ipcMain.handle('auradesk:disconnect-provider', (_evt, providerId: ProviderId) => {
+    const cleared = db.clearProviderCredentials(providerId);
+    const currentSettings = db.getSettings();
+    if (currentSettings.activeProviderId === providerId && providerId !== 'demo') {
+      const anotherVerified = db
+        .listProviders()
+        .find((p) => p.id !== providerId && p.isVerified && p.id !== 'demo');
+      db.updateSettings({ activeProviderId: anotherVerified ? anotherVerified.id : 'demo' });
+    }
+    return cleared;
+  });
+
   ipcMain.handle('auradesk:detect-ollama', async (_evt, customBaseUrl?: string) => {
     return detectLocalOllama(customBaseUrl);
   });
@@ -472,6 +484,33 @@ export function registerIpcHandlers(params: {
       }
     }
   );
+
+  // Native Window Controls (Windows 12 Pro Frameless Shell)
+  ipcMain.handle('auradesk:window-minimize', () => {
+    const win = getMainWindow();
+    if (win && !win.isDestroyed()) win.minimize();
+  });
+
+  ipcMain.handle('auradesk:window-toggle-maximize', () => {
+    const win = getMainWindow();
+    if (!win || win.isDestroyed()) return false;
+    if (win.isMaximized()) {
+      win.unmaximize();
+      return false;
+    }
+    win.maximize();
+    return true;
+  });
+
+  ipcMain.handle('auradesk:window-close', () => {
+    const win = getMainWindow();
+    if (win && !win.isDestroyed()) win.close();
+  });
+
+  ipcMain.handle('auradesk:window-is-maximized', () => {
+    const win = getMainWindow();
+    return Boolean(win && !win.isDestroyed() && win.isMaximized());
+  });
 
   // Safe External URL opener
   ipcMain.handle('auradesk:open-external', async (_evt, rawUrl: string) => {

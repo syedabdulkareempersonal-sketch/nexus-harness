@@ -1,7 +1,7 @@
 {
   "name": "auradesk",
   "productName": "AuraDesk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Zero-friction, open-source AI desktop workspace with visual superpowers, plain-English safety guardrails, local memory, and live canvas.",
   "main": "dist-electron/main.cjs",
   "author": "AuraDesk Open Source Contributors",

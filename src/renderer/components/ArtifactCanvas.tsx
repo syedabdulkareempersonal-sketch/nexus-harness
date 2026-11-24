@@ -88,12 +88,12 @@ export const ArtifactCanvas: React.FC<ArtifactCanvasProps> = ({
 
   return (
     <motion.section
-      initial={{ opacity: 0, transform: 'translateX(20px)' }}
-      animate={{ opacity: 1, transform: 'translateX(0px)' }}
-      exit={{ opacity: 0, transform: 'translateX(20px)' }}
-      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+      initial={{ opacity: 0, x: 14 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 14 }}
+      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
       aria-label="Live Artifact Canvas"
-      className="flex h-full w-full flex-col border-l border-hairline bg-surface lg:w-[46%] xl:w-[48%]"
+      className="win12-island flex h-full w-full flex-col overflow-hidden rounded-2xl lg:w-[45%] xl:w-[47%]"
     >
       {/* Canvas Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-5 py-3.5">

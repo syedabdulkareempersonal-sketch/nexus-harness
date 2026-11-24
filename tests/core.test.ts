@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AuraDatabase } from '../src/main/db/database';
-import { AiRouter } from '../src/main/ai/router';
+import { AiRouter, detectKeyProviderMismatch } from '../src/main/ai/router';
 import { extractDeterministicMemories } from '../src/main/ai/memoryCurator';
 import { McpClientManager } from '../src/main/mcp/mcpManager';
 import { assertAllowedPath } from '../src/main/security/pathGuard';
@@ -49,15 +49,34 @@ describe('AuraDesk Core Backend & Security Suite', () => {
     expect(workflows.length).toBeGreaterThanOrEqual(4);
     expect(workflows.some((w) => w.title === 'Clean & Organize My Folder')).toBe(true);
 
-    // Provider key storage never leaks plaintext
-    const savedProvider = db.saveProviderCredentials({
+    // Provider key storage never leaks plaintext and isolates each provider
+    const savedOpenAi = db.saveProviderCredentials({
       providerId: 'openai',
       apiKey: 'sk-live-secret-key-9988',
       isVerified: true,
     });
-    expect(savedProvider.hasKey).toBe(true);
-    expect(savedProvider.keyHint).toBe('sk-l••••9988');
+    const savedGemini = db.saveProviderCredentials({
+      providerId: 'google',
+      apiKey: 'AIzaSyTestGeminiKey1234',
+      selectedModel: 'gemini-3.8-flash',
+      isVerified: true,
+    });
+    expect(savedOpenAi.hasKey).toBe(true);
+    expect(savedOpenAi.keyHint).toBe('sk-l••••9988');
+    expect(savedGemini.keyHint).toBe('AIza••••1234');
     expect(db.getProviderSecret('openai').apiKey).toBe('sk-live-secret-key-9988');
+    expect(db.getProviderSecret('google').apiKey).toBe('AIzaSyTestGeminiKey1234');
+
+    // Disconnecting OpenAI leaves Google Gemini intact
+    const clearedOpenAi = db.clearProviderCredentials('openai');
+    expect(clearedOpenAi.hasKey).toBe(false);
+    expect(clearedOpenAi.isVerified).toBe(false);
+    expect(db.getProviderSecret('google').config.isVerified).toBe(true);
+
+    // Cross-provider key mismatch helper catches wrong tab pastes
+    expect(detectKeyProviderMismatch('openai', 'AIzaSyAbc123').mismatch).toBe(true);
+    expect(detectKeyProviderMismatch('google', 'AIzaSyAbc123').mismatch).toBe(false);
+    expect(detectKeyProviderMismatch('google', 'sk-ant-api03-xyz').mismatch).toBe(true);
 
     // Memory CRUD & pinning
     const m1 = db.saveMemory({ content: 'Prefers concise tables', category: 'Preferences' });

@@ -13,42 +13,37 @@ fs.mkdirSync(publicDir, { recursive: true });
 
 const svgLogo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <defs>
-    <linearGradient id="bgGrad" x1="64" y1="40" x2="448" y2="472" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#221D1A"/>
-      <stop offset="55%" stop-color="#171514"/>
-      <stop offset="100%" stop-color="#101114"/>
+    <linearGradient id="bgGrad" x1="48" y1="32" x2="464" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F2547"/>
+      <stop offset="52%" stop-color="#0B1930"/>
+      <stop offset="100%" stop-color="#08101E"/>
     </linearGradient>
-    <linearGradient id="auraOuter" x1="140" y1="108" x2="372" y2="356" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#F59E6C"/>
-      <stop offset="50%" stop-color="#D96B34"/>
-      <stop offset="100%" stop-color="#9A3F17"/>
+    <linearGradient id="auraOuter" x1="128" y1="96" x2="384" y2="368" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60D5FF"/>
+      <stop offset="50%" stop-color="#2589F5"/>
+      <stop offset="100%" stop-color="#005FB8"/>
     </linearGradient>
-    <linearGradient id="auraCore" x1="200" y1="160" x2="312" y2="288" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFF7F0"/>
-      <stop offset="100%" stop-color="#F6B98E"/>
+    <linearGradient id="auraCore" x1="192" y1="160" x2="320" y2="296" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F0FAFF"/>
+      <stop offset="100%" stop-color="#7DD3FC"/>
     </linearGradient>
     <linearGradient id="deskPlane" x1="96" y1="336" x2="416" y2="404" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FAF6F2"/>
-      <stop offset="100%" stop-color="#D7CEC4"/>
+      <stop offset="0%" stop-color="#F1F7FF"/>
+      <stop offset="100%" stop-color="#C8DCF8"/>
     </linearGradient>
   </defs>
-  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGrad)"/>
-  <rect x="26" y="26" width="460" height="460" rx="110" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="4"/>
-  <!-- Outer Luminous Aperture Ring -->
-  <circle cx="256" cy="226" r="118" stroke="url(#auraOuter)" stroke-width="26" stroke-opacity="0.92"/>
-  <!-- Inner Harmonic Ring -->
-  <circle cx="256" cy="226" r="68" fill="url(#auraCore)"/>
-  <!-- Grounded Desk Horizon Plane -->
-  <path d="M116 352C116 340.954 124.954 332 136 332H376C387.046 332 396 340.954 396 352V362C396 380.778 380.778 396 362 396H150C131.222 396 116 380.778 116 362V352Z" fill="url(#deskPlane)"/>
-  <!-- Subtle Desk Reflection Accent -->
-  <rect x="176" y="356" width="160" height="12" rx="6" fill="#B8501E" fill-opacity="0.55"/>
+  <rect x="24" y="24" width="464" height="464" rx="116" fill="url(#bgGrad)"/>
+  <rect x="26" y="26" width="460" height="460" rx="114" stroke="#7DD3FC" stroke-opacity="0.24" stroke-width="4"/>
+  <circle cx="256" cy="224" r="116" stroke="url(#auraOuter)" stroke-width="28"/>
+  <circle cx="256" cy="224" r="64" fill="url(#auraCore)"/>
+  <path d="M116 354C116 342.954 124.954 334 136 334H376C387.046 334 396 342.954 396 354V362C396 380.778 380.778 396 362 396H150C131.222 396 116 380.778 116 362V354Z" fill="url(#deskPlane)"/>
+  <rect x="180" y="358" width="152" height="14" rx="7" fill="#005FB8"/>
 </svg>
 `;
 
 fs.writeFileSync(path.join(buildDir, 'icon.svg'), svgLogo, 'utf8');
 fs.writeFileSync(path.join(publicDir, 'logo.svg'), svgLogo, 'utf8');
 
-// Pure JS antialiased SDF renderer for AuraDesk icon (zero native binary dependencies)
 function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }
@@ -88,63 +83,60 @@ function renderIconRGBA(size) {
       const px = (x + 0.5) / scale;
       const pixel = [0, 0, 0, 0];
 
-      // 1. Rounded squircle background
-      const bgDist = sdRoundedBox(px, py, 256, 256, 232, 232, 112);
+      const bgDist = sdRoundedBox(px, py, 256, 256, 232, 232, 116);
       const bgAlpha = 1 - smoothstep(-aa, aa, bgDist);
       if (bgAlpha > 0) {
-        const t = clamp(((px - 64) + (py - 40)) / 816, 0, 1);
-        const r = 34 * (1 - t) + 16 * t;
-        const g = 29 * (1 - t) + 17 * t;
-        const b = 26 * (1 - t) + 20 * t;
+        const t = clamp((px - 48 + (py - 32)) / 864, 0, 1);
+        const r = 15 * (1 - t) + 8 * t;
+        const g = 37 * (1 - t) + 16 * t;
+        const b = 71 * (1 - t) + 30 * t;
         blend(pixel, r, g, b, bgAlpha);
 
-        // Subtle inner border
         const borderDist = Math.abs(bgDist + 3) - 1.6;
-        const borderAlpha = (1 - smoothstep(-aa, aa, borderDist)) * 0.14 * bgAlpha;
-        blend(pixel, 255, 255, 255, borderAlpha);
+        const borderAlpha = (1 - smoothstep(-aa, aa, borderDist)) * 0.24 * bgAlpha;
+        blend(pixel, 125, 211, 252, borderAlpha);
 
-        // Soft warm ambient glow behind aperture
-        const dCenter = Math.hypot(px - 256, py - 226);
-        const glow = Math.exp(-(dCenter * dCenter) / (2 * 135 * 135)) * 0.24;
-        blend(pixel, 232, 122, 62, glow * bgAlpha);
+        const dCenter = Math.hypot(px - 256, py - 224);
+        const glow = Math.exp(-(dCenter * dCenter) / (2 * 140 * 140)) * 0.28;
+        blend(pixel, 37, 137, 245, glow * bgAlpha);
 
-        // 2. Outer Aperture Ring
-        const ringDist = Math.abs(dCenter - 118) - 13;
-        const ringAlpha = (1 - smoothstep(-aa, aa, ringDist)) * 0.95;
+        // Sapphire-Cyan Aperture Ring
+        const ringDist = Math.abs(dCenter - 116) - 14;
+        const ringAlpha = (1 - smoothstep(-aa, aa, ringDist)) * 0.98;
         if (ringAlpha > 0) {
-          const rt = clamp((py - 108) / 248, 0, 1);
-          const rr = 245 * (1 - rt) + 168 * rt;
-          const rg = 158 * (1 - rt) + 72 * rt;
-          const rb = 108 * (1 - rt) + 30 * rt;
+          const rt = clamp((py - 96) / 260, 0, 1);
+          const rr = 96 * (1 - rt) + 0 * rt;
+          const rg = 213 * (1 - rt) + 95 * rt;
+          const rb = 255 * (1 - rt) + 184 * rt;
           blend(pixel, rr, rg, rb, ringAlpha);
         }
 
-        // 3. Inner Luminous Core
-        const coreDist = dCenter - 66;
+        // Luminous Sky Core
+        const coreDist = dCenter - 64;
         const coreAlpha = 1 - smoothstep(-aa, aa, coreDist);
         if (coreAlpha > 0) {
-          const ct = clamp((py - 160) / 132, 0, 1);
-          const cr = 255 * (1 - ct) + 246 * ct;
-          const cg = 248 * (1 - ct) + 185 * ct;
-          const cb = 240 * (1 - ct) + 142 * ct;
+          const ct = clamp((py - 160) / 128, 0, 1);
+          const cr = 240 * (1 - ct) + 125 * ct;
+          const cg = 250 * (1 - ct) + 211 * ct;
+          const cb = 255 * (1 - ct) + 252 * ct;
           blend(pixel, cr, cg, cb, coreAlpha);
         }
 
-        // 4. Desk Horizon Bar
-        const deskDist = sdRoundedBox(px, py, 256, 364, 140, 32, 22);
+        // Mica Desk Horizon
+        const deskDist = sdRoundedBox(px, py, 256, 365, 140, 31, 22);
         const deskAlpha = 1 - smoothstep(-aa, aa, deskDist);
         if (deskAlpha > 0) {
-          const dt = clamp((py - 332) / 64, 0, 1);
-          const dr = 250 * (1 - dt) + 215 * dt;
-          const dg = 246 * (1 - dt) + 206 * dt;
-          const db = 242 * (1 - dt) + 196 * dt;
+          const dt = clamp((py - 334) / 62, 0, 1);
+          const dr = 241 * (1 - dt) + 200 * dt;
+          const dg = 247 * (1 - dt) + 220 * dt;
+          const db = 255 * (1 - dt) + 248 * dt;
           blend(pixel, dr, dg, db, deskAlpha);
         }
 
-        // 5. Desk Accent Slot
-        const slotDist = sdRoundedBox(px, py, 256, 364, 78, 6, 6);
-        const slotAlpha = (1 - smoothstep(-aa, aa, slotDist)) * 0.65;
-        blend(pixel, 184, 80, 30, slotAlpha);
+        // Fluent Cobalt Pill
+        const slotDist = sdRoundedBox(px, py, 256, 365, 76, 7, 7);
+        const slotAlpha = (1 - smoothstep(-aa, aa, slotDist)) * 0.9;
+        blend(pixel, 0, 95, 184, slotAlpha);
       }
 
       const idx = (y * size + x) * 4;
@@ -157,7 +149,6 @@ function renderIconRGBA(size) {
   return buf;
 }
 
-// CRC32 table for PNG chunks
 const crcTable = new Uint32Array(256);
 for (let n = 0; n < 256; n++) {
   let c = n;
@@ -189,14 +180,14 @@ function encodePNG(size, rgba) {
   const raw = Buffer.alloc(size * (size * 4 + 1));
   for (let y = 0; y < size; y++) {
     const rowStart = y * (size * 4 + 1);
-    raw[rowStart] = 0; // filter none
+    raw[rowStart] = 0;
     rgba.copy(raw, rowStart + 1, y * size * 4, (y + 1) * size * 4);
   }
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
+  ihdr[8] = 8;
+  ihdr[9] = 6;
   ihdr[10] = 0;
   ihdr[11] = 0;
   ihdr[12] = 0;
@@ -214,8 +205,8 @@ function encodePNG(size, rgba) {
 function encodeICO(pngBuffersWithSizes) {
   const count = pngBuffersWithSizes.length;
   const header = Buffer.alloc(6);
-  header.writeUInt16LE(0, 0); // reserved
-  header.writeUInt16LE(1, 2); // type 1 = ICO
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
   header.writeUInt16LE(count, 4);
 
   const dirEntries = [];
@@ -226,8 +217,8 @@ function encodeICO(pngBuffersWithSizes) {
     entry[1] = size >= 256 ? 0 : size;
     entry[2] = 0;
     entry[3] = 0;
-    entry.writeUInt16LE(1, 4); // color planes
-    entry.writeUInt16LE(32, 6); // bits per pixel
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
     entry.writeUInt32LE(png.length, 8);
     entry.writeUInt32LE(offset, 12);
     dirEntries.push(entry);
@@ -254,4 +245,4 @@ const ico = encodeICO([
 ]);
 fs.writeFileSync(path.join(buildDir, 'icon.ico'), ico);
 
-console.log('Generated build/icon.svg, build/icon.png (512x512), and build/icon.ico (multi-res).');
+console.log('Generated Windows 12 Pro Sapphire icons (icon.svg, icon.png, icon.ico).');

@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArtifactCanvas } from './components/ArtifactCanvas';
 import { ChatWorkspace } from './components/ChatWorkspace';
+import { CommandPalette } from './components/CommandPalette';
 import { MemoryDrawer } from './components/MemoryDrawer';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { SettingsModal } from './components/SettingsModal';
 import { Sidebar, type NavTab } from './components/Sidebar';
 import { SuperpowersStore } from './components/SuperpowersStore';
+import { WindowTitleBar } from './components/WindowTitleBar';
 import { WorkflowStudio } from './components/WorkflowStudio';
 import { desktopApi } from './lib/bridge';
 import type {
@@ -54,6 +56,7 @@ export const App: React.FC = () => {
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const refreshBootstrap = useCallback(async () => {
     const data = await desktopApi.bootstrap();
@@ -72,7 +75,7 @@ export const App: React.FC = () => {
     void refreshBootstrap();
   }, [refreshBootstrap]);
 
-  // Apply Light/Dark mode cleanly to root element
+  // Apply Daylight / Midnight Mica theme cleanly
   useEffect(() => {
     if (!settings) return;
     const prefersDark =
@@ -82,19 +85,14 @@ export const App: React.FC = () => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [settings]);
 
-  // Load messages when activeConversationId changes
-  useEffect(() => {
-    if (!activeConversationId) {
-      setMessages([]);
-      return;
-    }
-    void desktopApi.getMessages(activeConversationId).then((loaded) => {
-      setMessages(loaded);
-      setErrorBanner(null);
-    });
-  }, [activeConversationId]);
+  const loadConversationHistory = useCallback(async (id: string) => {
+    setActiveConversationId(id);
+    setErrorBanner(null);
+    const loaded = await desktopApi.getMessages(id);
+    setMessages(loaded);
+  }, []);
 
-  // Instant keyboard shortcut Ctrl/Cmd + N for New Chat (no animation delay)
+  // Instant keyboard shortcuts: Ctrl+N (New Session) & Ctrl+K (Quick Command Launcher)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
@@ -104,6 +102,9 @@ export const App: React.FC = () => {
         setMessages([]);
         setCanvasOpen(false);
         setErrorBanner(null);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((v) => !v);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -182,6 +183,10 @@ export const App: React.FC = () => {
         setAllowedFolders((prev) =>
           prev.map((f) => (f.id === event.folder.id ? event.folder : f))
         );
+      } else if (event.type === 'provider-updated') {
+        setProviders((prev) =>
+          prev.map((p) => (p.id === event.provider.id ? event.provider : p))
+        );
       } else if (event.type === 'done') {
         setIsStreaming(false);
         setPendingSafety(null);
@@ -225,19 +230,32 @@ export const App: React.FC = () => {
     return builtInOn + mcpOn;
   }, [settings, mcpServers]);
 
+  const activeProviderObj = useMemo(
+    () => providers.find((p) => p.id === settings?.activeProviderId) ?? providers[0],
+    [providers, settings?.activeProviderId]
+  );
+
   if (loading || !settings) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-canvas text-sm text-ink-secondary">
-        Opening AuraDesk...
+      <div className="win12-mica-bg flex h-screen w-screen items-center justify-center text-sm font-medium text-ink-secondary">
+        Launching AuraDesk Studio...
       </div>
     );
   }
+
+  const handleToggleTheme = async () => {
+    const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
+    const updated = await desktopApi.updateSettings({ theme: nextTheme });
+    setSettings(updated);
+  };
 
   if (!settings.onboardingCompleted) {
     return (
       <OnboardingWizard
         providers={providers}
         allowedFolders={allowedFolders}
+        theme={settings.theme}
+        onToggleTheme={handleToggleTheme}
         onFoldersChanged={setAllowedFolders}
         onProvidersChanged={refreshBootstrap}
         onComplete={async (selectedProviderId) => {
@@ -262,12 +280,11 @@ export const App: React.FC = () => {
   const handleSendMessage = async (content: string, attachments: FileAttachment[]) => {
     setIsStreaming(true);
     setErrorBanner(null);
-    const { conversationId } = await desktopApi.sendMessage({
+    await desktopApi.sendMessage({
       conversationId: activeConversationId || undefined,
       content,
       attachments,
     });
-    setActiveConversationId(conversationId);
   };
 
   const handleStopGeneration = async () => {
@@ -282,15 +299,12 @@ export const App: React.FC = () => {
     setPendingSafety(null);
   };
 
-  const handleToggleTheme = async () => {
-    const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
-    const updated = await desktopApi.updateSettings({ theme: nextTheme });
+  const handleSwitchProvider = async (providerId: ProviderId, model?: string) => {
+    const updated = await desktopApi.selectActiveProvider(providerId, model);
     setSettings(updated);
-  };
-
-  const handleSwitchProvider = async (providerId: ProviderId) => {
-    const updated = await desktopApi.selectActiveProvider(providerId);
-    setSettings(updated);
+    if (model) {
+      await refreshBootstrap();
+    }
   };
 
   const handleToggleBuiltIn = async (key: keyof BuiltInToolSettings, enabled: boolean) => {
@@ -402,115 +416,128 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-canvas text-ink">
-      <Sidebar
-        activeTab={activeTab}
-        conversations={conversations}
-        activeConversationId={activeConversationId}
+    <div className="win12-mica-bg flex h-screen w-screen flex-col overflow-hidden text-ink">
+      {/* Windows 12 Pro Frameless Top Shell */}
+      <WindowTitleBar
+        activeProvider={activeProviderObj}
         theme={settings.theme}
-        activeSuperpowerCount={activeSuperpowerCount}
-        workflowCount={workflows.length}
-        onSelectTab={setActiveTab}
-        onNewChat={handleNewChat}
-        onSelectConversation={(id) => {
-          setActiveConversationId(id);
-          setCanvasOpen(false);
-        }}
-        onDeleteConversation={async (id) => {
-          await desktopApi.deleteConversation(id);
-          setConversations((prev) => prev.filter((c) => c.id !== id));
-          if (activeConversationId === id) {
-            handleNewChat();
-          }
-        }}
-        onToggleTheme={handleToggleTheme}
+        memoryCount={memories.length}
+        memoryOpen={memoryOpen}
+        artifactCount={artifactsForConversation.length}
+        canvasOpen={canvasOpen && Boolean(activeArtifact)}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
+        onToggleMemory={() => setMemoryOpen((v) => !v)}
+        onToggleCanvas={() => setCanvasOpen((v) => !v)}
+        onToggleTheme={handleToggleTheme}
       />
 
-      {activeTab === 'chat' && (
-        <>
-          <ChatWorkspace
-            messages={messages}
-            isStreaming={isStreaming}
-            errorBanner={errorBanner}
-            providers={providers}
-            activeProviderId={settings.activeProviderId}
-            allowedFolders={allowedFolders}
-            workflows={workflows}
-            artifactsForConversation={artifactsForConversation}
-            memoryCount={memories.length}
-            memoryOpen={memoryOpen}
-            canvasOpen={canvasOpen && Boolean(activeArtifact)}
-            pendingSafety={pendingSafety}
-            draftInput={draftInput}
-            onDraftInputChange={setDraftInput}
-            onSend={handleSendMessage}
-            onStop={handleStopGeneration}
-            onResolveSafety={handleResolveSafety}
-            onSwitchProvider={handleSwitchProvider}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onPickFolder={handlePickFolder}
-            onOpenArtifact={(art) => {
-              setActiveArtifactId(art.id);
-              setCanvasOpen(true);
-            }}
-            onToggleCanvas={() => setCanvasOpen((v) => !v)}
-            onToggleMemory={() => setMemoryOpen((v) => !v)}
-          />
+      {/* Detached Floating Glass Islands */}
+      <div className="flex min-h-0 flex-1 gap-2.5 px-2.5 pb-2.5">
+        <Sidebar
+          activeTab={activeTab}
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          activeSuperpowerCount={activeSuperpowerCount}
+          workflowCount={workflows.length}
+          onSelectTab={setActiveTab}
+          onNewChat={handleNewChat}
+          onSelectConversation={(id) => {
+            setCanvasOpen(false);
+            void loadConversationHistory(id);
+          }}
+          onDeleteConversation={async (id) => {
+            await desktopApi.deleteConversation(id);
+            setConversations((prev) => prev.filter((c) => c.id !== id));
+            if (activeConversationId === id) {
+              handleNewChat();
+            }
+          }}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
 
-          {canvasOpen && activeArtifact && (
-            <ArtifactCanvas
-              artifact={activeArtifact}
-              allArtifacts={
-                artifactsForConversation.length > 0 ? artifactsForConversation : [activeArtifact]
-              }
-              onSelectArtifact={(art) => setActiveArtifactId(art.id)}
-              onSaveArtifact={handleSaveArtifact}
-              onExportArtifact={handleExportArtifact}
-              onClose={() => setCanvasOpen(false)}
+        {activeTab === 'chat' && (
+          <>
+            <ChatWorkspace
+              messages={messages}
+              isStreaming={isStreaming}
+              errorBanner={errorBanner}
+              providers={providers}
+              activeProviderId={settings.activeProviderId}
+              allowedFolders={allowedFolders}
+              workflows={workflows}
+              artifactsForConversation={artifactsForConversation}
+              pendingSafety={pendingSafety}
+              draftInput={draftInput}
+              onDraftInputChange={setDraftInput}
+              onSend={handleSendMessage}
+              onStop={handleStopGeneration}
+              onResolveSafety={handleResolveSafety}
+              onSwitchProvider={handleSwitchProvider}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onPickFolder={handlePickFolder}
+              onOpenArtifact={(art) => {
+                setActiveArtifactId(art.id);
+                setCanvasOpen(true);
+              }}
             />
-          )}
 
-          <MemoryDrawer
-            open={memoryOpen}
-            memories={memories}
-            autoMemoryEnabled={settings.autoMemoryEnabled}
-            onClose={() => setMemoryOpen(false)}
-            onSaveMemory={handleSaveMemory}
-            onTogglePin={handleTogglePinMemory}
-            onDeleteMemory={handleDeleteMemory}
-            onToggleAutoMemory={async (enabled) => {
-              const updated = await desktopApi.updateSettings({ autoMemoryEnabled: enabled });
-              setSettings(updated);
-            }}
+            {canvasOpen && activeArtifact && (
+              <ArtifactCanvas
+                artifact={activeArtifact}
+                allArtifacts={
+                  artifactsForConversation.length > 0
+                    ? artifactsForConversation
+                    : [activeArtifact]
+                }
+                onSelectArtifact={(art) => setActiveArtifactId(art.id)}
+                onSaveArtifact={handleSaveArtifact}
+                onExportArtifact={handleExportArtifact}
+                onClose={() => setCanvasOpen(false)}
+              />
+            )}
+
+            <MemoryDrawer
+              open={memoryOpen}
+              memories={memories}
+              autoMemoryEnabled={settings.autoMemoryEnabled}
+              onClose={() => setMemoryOpen(false)}
+              onSaveMemory={handleSaveMemory}
+              onTogglePin={handleTogglePinMemory}
+              onDeleteMemory={handleDeleteMemory}
+              onToggleAutoMemory={async (enabled) => {
+                const updated = await desktopApi.updateSettings({ autoMemoryEnabled: enabled });
+                setSettings(updated);
+              }}
+            />
+          </>
+        )}
+
+        {activeTab === 'workflows' && (
+          <WorkflowStudio
+            workflows={workflows}
+            onRunWorkflow={handleRunWorkflow}
+            onSaveWorkflow={handleSaveWorkflow}
+            onDeleteWorkflow={handleDeleteWorkflow}
           />
-        </>
-      )}
+        )}
 
-      {activeTab === 'workflows' && (
-        <WorkflowStudio
-          workflows={workflows}
-          onRunWorkflow={handleRunWorkflow}
-          onSaveWorkflow={handleSaveWorkflow}
-          onDeleteWorkflow={handleDeleteWorkflow}
-        />
-      )}
-
-      {activeTab === 'superpowers' && (
-        <SuperpowersStore
-          builtInTools={settings.builtInTools}
-          allowedFolders={allowedFolders}
-          mcpServers={mcpServers}
-          onToggleBuiltIn={handleToggleBuiltIn}
-          onPickFolder={handlePickFolder}
-          onUpdateFolderTrust={handleUpdateFolderTrust}
-          onRemoveFolder={handleRemoveFolder}
-          onSaveMcpServer={handleSaveMcp}
-          onToggleMcpServer={handleToggleMcp}
-          onTestMcpServer={handleTestMcp}
-          onDeleteMcpServer={handleDeleteMcp}
-        />
-      )}
+        {activeTab === 'superpowers' && (
+          <SuperpowersStore
+            builtInTools={settings.builtInTools}
+            allowedFolders={allowedFolders}
+            mcpServers={mcpServers}
+            onToggleBuiltIn={handleToggleBuiltIn}
+            onPickFolder={handlePickFolder}
+            onUpdateFolderTrust={handleUpdateFolderTrust}
+            onRemoveFolder={handleRemoveFolder}
+            onSaveMcpServer={handleSaveMcp}
+            onToggleMcpServer={handleToggleMcp}
+            onTestMcpServer={handleTestMcp}
+            onDeleteMcpServer={handleDeleteMcp}
+          />
+        )}
+      </div>
 
       <SettingsModal
         open={settingsOpen}
@@ -518,6 +545,23 @@ export const App: React.FC = () => {
         providers={providers}
         onClose={() => setSettingsOpen(false)}
         onRefreshState={refreshBootstrap}
+      />
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        providers={providers}
+        workflows={workflows}
+        theme={settings.theme}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNewChat={handleNewChat}
+        onOpenSuperpowers={() => setActiveTab('superpowers')}
+        onOpenWorkflows={() => setActiveTab('workflows')}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onToggleMemory={() => setMemoryOpen((v) => !v)}
+        onToggleTheme={handleToggleTheme}
+        onPickFolder={handlePickFolder}
+        onSwitchProvider={(id) => handleSwitchProvider(id)}
+        onRunWorkflow={handleRunWorkflow}
       />
     </div>
   );

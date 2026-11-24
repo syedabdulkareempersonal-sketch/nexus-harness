@@ -77,10 +77,10 @@ flowchart LR
 ### For Everyday Users (Zero Terminal)
 1. Go to the [**Releases**](https://github.com/syedabdulkareempersonal-sketch/nexus-harness/releases/latest) page.
 2. Download the 1-click installer for your computer:
-   - **Windows:** `AuraDesk-Setup-1.0.0.exe`
-   - **macOS (Apple Silicon & Intel Universal):** `AuraDesk-1.0.0-Universal.dmg`
-   - **Linux:** `AuraDesk-1.0.0-x86_64.AppImage`
-3. Open **AuraDesk**, paste 1 API key (or click **Auto-Detect Local AI**), and start working!
+   - **Windows:** `AuraDesk-Setup-1.1.0.exe`
+   - **macOS (Apple Silicon & Intel Universal):** `AuraDesk-1.1.0-Universal.dmg`
+   - **Linux:** `AuraDesk-1.1.0-x86_64.AppImage`
+3. Open **AuraDesk**, paste 1 API key (AuraDesk automatically discovers every live model on your account!) or click **Auto-Detect Local AI**, and start working!
 
 ### For Developers & Contributors
 ```bash

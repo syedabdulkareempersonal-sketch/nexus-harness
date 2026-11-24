@@ -298,6 +298,10 @@ export type StreamEvent =
       folder: AllowedFolder;
     }
   | {
+      type: 'provider-updated';
+      provider: ProviderConfig;
+    }
+  | {
       type: 'done';
       conversationId: string;
       assistantMessage: ChatMessage;
@@ -316,6 +320,7 @@ export interface AuraDeskBridge {
 
   // Providers & Onboarding
   verifyAndSaveProvider(input: VerifyProviderInput): Promise<VerifyProviderResult>;
+  disconnectProvider(providerId: ProviderId): Promise<ProviderConfig>;
   detectOllama(customBaseUrl?: string): Promise<OllamaDetectionResult>;
   selectActiveProvider(providerId: ProviderId, model?: string): Promise<AppSettings>;
 
@@ -365,6 +370,12 @@ export interface AuraDeskBridge {
   saveArtifact(input: SaveArtifactInput): Promise<ArtifactItem>;
   deleteArtifact(id: string): Promise<void>;
   exportArtifact(artifactId: string, format: ExportArtifactFormat): Promise<ExportArtifactResult>;
+
+  // Native Window Controls (Windows 12 Pro Frameless Shell)
+  windowMinimize(): Promise<void>;
+  windowToggleMaximize(): Promise<boolean>;
+  windowClose(): Promise<void>;
+  windowIsMaximized(): Promise<boolean>;
 
   // External Links
   openExternalUrl(url: string): Promise<void>;

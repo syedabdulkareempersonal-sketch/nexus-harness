@@ -77,7 +77,7 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({
   };
 
   return (
-    <div className="h-full flex-1 overflow-y-auto px-6 py-8 sm:px-10">
+    <div className="win12-island h-full flex-1 overflow-y-auto rounded-2xl px-6 py-8 sm:px-10">
       <div className="mx-auto max-w-4xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

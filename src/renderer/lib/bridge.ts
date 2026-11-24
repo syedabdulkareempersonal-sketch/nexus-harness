@@ -105,6 +105,12 @@ const browserFallbackBridge: AuraDeskBridge = {
     latencyMs: 25,
     message: `Connected to ${input.providerId}`,
   }),
+  disconnectProvider: async (providerId) => ({
+    ...fallbackState.providers.find((p) => p.id === providerId)!,
+    hasKey: false,
+    keyHint: null,
+    isVerified: providerId === 'demo',
+  }),
   detectOllama: async () => ({
     available: false,
     baseUrl: 'http://127.0.0.1:11434/v1',
@@ -240,6 +246,10 @@ const browserFallbackBridge: AuraDeskBridge = {
   }),
   deleteArtifact: async () => {},
   exportArtifact: async () => ({ ok: true, message: 'Exported' }),
+  windowMinimize: async () => {},
+  windowToggleMaximize: async () => false,
+  windowClose: async () => {},
+  windowIsMaximized: async () => false,
   openExternalUrl: async (url) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   },

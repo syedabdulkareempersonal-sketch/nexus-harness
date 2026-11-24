@@ -31,30 +31,30 @@ const DEFAULT_PROVIDER_MODELS: Record<
 > = {
   google: {
     displayName: 'Google Gemini',
-    defaultModel: 'gemini-2.5-flash',
-    models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+    defaultModel: 'gemini-3.8-flash',
+    models: ['gemini-3.8-flash', 'gemini-3.8-pro', 'gemini-2.5-pro', 'gemini-2.5-flash'],
     baseUrl: null,
   },
   openai: {
     displayName: 'OpenAI',
-    defaultModel: 'gpt-4o-mini',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini'],
+    defaultModel: 'gpt-4.1-mini',
+    models: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o', 'gpt-4o-mini', 'o4-mini'],
     baseUrl: null,
   },
   anthropic: {
     displayName: 'Anthropic Claude',
-    defaultModel: 'claude-3-7-sonnet-latest',
-    models: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
+    defaultModel: 'claude-sonnet-4-0',
+    models: ['claude-sonnet-4-0', 'claude-3-7-sonnet-latest', 'claude-3-5-haiku-latest'],
     baseUrl: null,
   },
   openrouter: {
     displayName: 'OpenRouter',
-    defaultModel: 'anthropic/claude-3.7-sonnet',
+    defaultModel: 'openai/gpt-4.1-mini',
     models: [
-      'anthropic/claude-3.7-sonnet',
-      'google/gemini-2.5-pro-preview',
-      'openai/gpt-4o-mini',
-      'deepseek/deepseek-chat-v3-0324',
+      'openai/gpt-4.1-mini',
+      'anthropic/claude-sonnet-4',
+      'google/gemini-2.5-pro',
+      'deepseek/deepseek-chat',
     ],
     baseUrl: 'https://openrouter.ai/api/v1',
   },
@@ -65,7 +65,7 @@ const DEFAULT_PROVIDER_MODELS: Record<
     baseUrl: 'http://127.0.0.1:11434/v1',
   },
   demo: {
-    displayName: 'Guided Demo Mode',
+    displayName: 'Guided Demo Studio',
     defaultModel: 'auradesk-interactive-studio',
     models: ['auradesk-interactive-studio'],
     baseUrl: null,
@@ -293,6 +293,20 @@ export class AuraDatabase {
       );
     }
 
+    // Upgrade legacy v1.0.0 default model names on existing unverified rows
+    this.db
+      .prepare(
+        `UPDATE providers
+         SET selected_model = 'gemini-3.8-flash',
+             available_models_json = ?
+         WHERE id = 'google' AND is_verified = 0 AND selected_model = 'gemini-2.5-flash'`
+      )
+      .run(JSON.stringify(DEFAULT_PROVIDER_MODELS.google.models));
+
+    this.db
+      .prepare(`UPDATE providers SET display_name = 'Guided Demo Studio' WHERE id = 'demo'`)
+      .run();
+
     // Seed 1-Click Workflow Studio cards
     const insertWorkflow = this.db.prepare(`
       INSERT OR IGNORE INTO workflows (
@@ -468,6 +482,26 @@ export class AuraDatabase {
       );
 
     return this.getProviderSecret(params.providerId).config;
+  }
+
+  public clearProviderCredentials(providerId: ProviderId): ProviderConfig {
+    const defaults = DEFAULT_PROVIDER_MODELS[providerId];
+    const now = new Date().toISOString();
+    this.db
+      .prepare(
+        `UPDATE providers
+         SET encrypted_api_key = NULL, key_hint = NULL, selected_model = ?,
+             available_models_json = ?, is_verified = ?, updated_at = ?
+         WHERE id = ?`
+      )
+      .run(
+        defaults.defaultModel,
+        JSON.stringify(defaults.models),
+        providerId === 'demo' ? 1 : 0,
+        now,
+        providerId
+      );
+    return this.getProviderSecret(providerId).config;
   }
 
   // ---- Conversations & Messages ----
