@@ -3,14 +3,14 @@ name: Build & Publish AuraDesk Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build-installers:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -18,61 +18,75 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            platform_flag: --win nsis
-            artifact_glob: 'release/*.exe'
+            platform_flag: "--win nsis"
           - os: macos-latest
-            platform_flag: --mac dmg --universal
-            artifact_glob: 'release/*.dmg'
+            platform_flag: "--mac dmg --universal"
           - os: ubuntu-latest
-            platform_flag: --linux AppImage
-            artifact_glob: 'release/*.AppImage'
+            platform_flag: "--linux AppImage"
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
-      - name: Install Linux packaging libraries
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2 rpm
+          npm ci --foreground-scripts || npm install --foreground-scripts
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Ensure Electron & esbuild Binaries
+        shell: bash
+        run: |
+          if [ ! -d "node_modules/electron/dist" ]; then node node_modules/electron/install.js; fi
+          node node_modules/esbuild/install.js || true
 
-      - name: Typecheck & Run Core Test Suite
+      - name: Typecheck & Run Automated Test Suite
         run: |
           npm run typecheck
           npm test
 
-      - name: Build Icons, Renderer, and Electron Main
+      - name: Build Application Bundles & Icons
         run: npm run build
 
-      - name: Package 1-Click Desktop Installer
+      - name: Package Native 1-Click Installer
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npx electron-builder ${{ matrix.platform_flag }} --publish never
 
-      - name: Upload Installer Artifact
+      - name: Upload Installer Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ matrix.os }}
-          path: ${{ matrix.artifact_glob }}
+          name: installers-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+            release/*.blockmap
+          if-no-files-found: error
 
-      - name: Attach Binaries to Public GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+  publish-github-release:
+    name: Publish Public GitHub Release
+    needs: build-installers
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Platform Installers
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release & Attach Binaries
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.artifact_glob }}
           generate_release_notes: true
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            release-assets/*.exe
+            release-assets/*.dmg
+            release-assets/*.AppImage

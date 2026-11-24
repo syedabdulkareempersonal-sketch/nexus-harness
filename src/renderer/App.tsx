@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { ArtifactCanvas } from './components/ArtifactCanvas';
 import { ChatWorkspace } from './components/ChatWorkspace';
 import { MemoryDrawer } from './components/MemoryDrawer';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { SettingsModal } from './components/SettingsModal';
-import { Sidebar, type ActiveNavTab } from './components/Sidebar';
+import { Sidebar, type NavTab } from './components/Sidebar';
 import { SuperpowersStore } from './components/SuperpowersStore';
 import { WorkflowStudio } from './components/WorkflowStudio';
 import { desktopApi } from './lib/bridge';
@@ -18,28 +17,19 @@ import type {
   ConversationSummary,
   ExportArtifactFormat,
   FileAttachment,
+  FolderTrustMode,
   McpServerConfig,
   MemoryItem,
   PendingSafetyRequest,
   ProviderConfig,
   ProviderId,
+  SaveArtifactInput,
+  SaveMcpServerInput,
+  SaveMemoryInput,
+  SaveWorkflowInput,
   SafetyDecision,
-  StreamEvent,
   WorkflowItem,
 } from '@shared/types';
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || '');
-      const commaIdx = result.indexOf(',');
-      resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -52,28 +42,29 @@ export const App: React.FC = () => {
   const [memories, setMemories] = useState<MemoryItem[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactItem[]>([]);
 
-  const [activeTab, setActiveTab] = useState<ActiveNavTab>('chat');
+  const [activeTab, setActiveTab] = useState<NavTab>('chat');
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [streamingConvId, setStreamingConvId] = useState<string | null>(null);
+  const [draftInput, setDraftInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
+  const [pendingSafety, setPendingSafety] = useState<PendingSafetyRequest | null>(null);
+  const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
+  const [canvasOpen, setCanvasOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
-  const [activeArtifact, setActiveArtifact] = useState<ArtifactItem | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [prefillPrompt, setPrefillPrompt] = useState('');
-  const [pendingSafetyRequests, setPendingSafetyRequests] = useState<PendingSafetyRequest[]>([]);
 
   const refreshBootstrap = useCallback(async () => {
-    const payload = await desktopApi.bootstrap();
-    setSettings(payload.settings);
-    setProviders(payload.providers);
-    setConversations(payload.conversations);
-    setAllowedFolders(payload.allowedFolders);
-    setMcpServers(payload.mcpServers);
-    setWorkflows(payload.workflows);
-    setMemories(payload.memories);
-    setArtifacts(payload.artifacts);
+    const data = await desktopApi.bootstrap();
+    setSettings(data.settings);
+    setProviders(data.providers);
+    setConversations(data.conversations);
+    setAllowedFolders(data.allowedFolders);
+    setMcpServers(data.mcpServers);
+    setWorkflows(data.workflows);
+    setMemories(data.memories);
+    setArtifacts(data.artifacts);
     setLoading(false);
   }, []);
 
@@ -81,35 +72,17 @@ export const App: React.FC = () => {
     void refreshBootstrap();
   }, [refreshBootstrap]);
 
-  // Apply light/dark theme class to <html>
+  // Apply Light/Dark mode cleanly to root element
   useEffect(() => {
     if (!settings) return;
     const prefersDark =
-      settings.theme === 'dark' ||
-      (settings.theme === 'system' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.classList.toggle('dark', prefersDark);
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark =
+      settings.theme === 'dark' || (settings.theme === 'system' && prefersDark);
+    document.documentElement.classList.toggle('dark', isDark);
   }, [settings]);
 
-  // Instant keyboard shortcuts (no animation delay)
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
-        e.preventDefault();
-        setActiveTab('chat');
-        setActiveConversationId(null);
-        setMessages([]);
-        setActiveArtifact(null);
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'm') {
-        e.preventDefault();
-        setMemoryOpen((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  // Load messages when conversation selection changes
+  // Load messages when activeConversationId changes
   useEffect(() => {
     if (!activeConversationId) {
       setMessages([]);
@@ -117,19 +90,37 @@ export const App: React.FC = () => {
     }
     void desktopApi.getMessages(activeConversationId).then((loaded) => {
       setMessages(loaded);
+      setErrorBanner(null);
     });
   }, [activeConversationId]);
 
-  // Subscribe to Main-process real-time AI stream events
+  // Instant keyboard shortcut Ctrl/Cmd + N for New Chat (no animation delay)
   useEffect(() => {
-    const unsubscribe = desktopApi.onStreamEvent((event: StreamEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        setActiveTab('chat');
+        setActiveConversationId(null);
+        setMessages([]);
+        setCanvasOpen(false);
+        setErrorBanner(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // Subscribe to real-time main-process stream events
+  useEffect(() => {
+    const unsubscribe = desktopApi.onStreamEvent((event) => {
       if (event.type === 'conversation-ready') {
         setConversations((prev) => {
           const filtered = prev.filter((c) => c.id !== event.conversation.id);
           return [event.conversation, ...filtered];
         });
         setActiveConversationId(event.conversation.id);
-        setStreamingConvId(event.conversation.id);
+        setIsStreaming(true);
+        setErrorBanner(null);
 
         const placeholderAssistant: ChatMessage = {
           id: event.assistantMessageId,
@@ -141,7 +132,6 @@ export const App: React.FC = () => {
           artifactIds: [],
           createdAt: new Date().toISOString(),
         };
-
         setMessages((prev) => {
           const withoutDup = prev.filter(
             (m) => m.id !== event.userMessage.id && m.id !== event.assistantMessageId
@@ -158,13 +148,12 @@ export const App: React.FC = () => {
         setMessages((prev) =>
           prev.map((m) => {
             if (m.id !== event.messageId) return m;
-            const exists = m.toolActivities.some((a) => a.id === event.activity.id);
-            const updatedActivities = exists
-              ? m.toolActivities.map((a) =>
-                  a.id === event.activity.id ? event.activity : a
-                )
-              : [...m.toolActivities, event.activity];
-            return { ...m, toolActivities: updatedActivities };
+            const idx = m.toolActivities.findIndex((a) => a.id === event.activity.id);
+            const nextActivities =
+              idx >= 0
+                ? m.toolActivities.map((a, i) => (i === idx ? event.activity : a))
+                : [...m.toolActivities, event.activity];
+            return { ...m, toolActivities: nextActivities };
           })
         );
       } else if (event.type === 'artifact-upsert') {
@@ -172,7 +161,6 @@ export const App: React.FC = () => {
           const without = prev.filter((a) => a.id !== event.artifact.id);
           return [event.artifact, ...without];
         });
-        setActiveArtifact(event.artifact);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === event.messageId && !m.artifactIds.includes(event.artifact.id)
@@ -180,55 +168,62 @@ export const App: React.FC = () => {
               : m
           )
         );
+        setActiveArtifactId(event.artifact.id);
+        setCanvasOpen(true);
       } else if (event.type === 'memory-created') {
         setMemories((prev) => [event.memory, ...prev.filter((m) => m.id !== event.memory.id)]);
       } else if (event.type === 'safety-request') {
-        setPendingSafetyRequests((prev) => [...prev, event.request]);
+        setPendingSafety(event.request);
       } else if (event.type === 'safety-resolved') {
-        setPendingSafetyRequests((prev) =>
-          prev.filter((r) => r.requestId !== event.requestId)
+        setPendingSafety((curr) =>
+          curr && curr.requestId === event.requestId ? null : curr
         );
       } else if (event.type === 'folder-updated') {
         setAllowedFolders((prev) =>
           prev.map((f) => (f.id === event.folder.id ? event.folder : f))
         );
       } else if (event.type === 'done') {
-        setStreamingConvId(null);
+        setIsStreaming(false);
+        setPendingSafety(null);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === event.assistantMessage.id ? event.assistantMessage : m
           )
         );
-        setConversations((prev) => [
-          event.conversation,
-          ...prev.filter((c) => c.id !== event.conversation.id),
-        ]);
+        setConversations((prev) => {
+          const rest = prev.filter((c) => c.id !== event.conversation.id);
+          return [event.conversation, ...rest];
+        });
       } else if (event.type === 'error') {
-        setStreamingConvId(null);
+        setIsStreaming(false);
+        setPendingSafety(null);
         setErrorBanner(event.friendlyMessage);
-        if (event.messageId) {
-          setMessages((prev) =>
-            prev.filter((m) => !(m.id === event.messageId && !m.content))
-          );
-        }
       }
     });
 
     return unsubscribe;
   }, []);
 
-  const enabledToolsCount = useMemo(() => {
-    if (!settings) return 0;
-    const builtIns = Object.values(settings.builtInTools).filter(Boolean).length;
-    const activeMcp = mcpServers.filter((s) => s.enabled).length;
-    return builtIns + activeMcp;
-  }, [settings, mcpServers]);
-
-  const conversationArtifacts = useMemo(() => {
+  const artifactsForConversation = useMemo(() => {
     if (!activeConversationId) return artifacts.slice(0, 6);
     const matching = artifacts.filter((a) => a.conversationId === activeConversationId);
     return matching.length > 0 ? matching : [];
   }, [artifacts, activeConversationId]);
+
+  const activeArtifact = useMemo(() => {
+    if (activeArtifactId) {
+      const exact = artifacts.find((a) => a.id === activeArtifactId);
+      if (exact) return exact;
+    }
+    return artifactsForConversation[0] || null;
+  }, [artifacts, activeArtifactId, artifactsForConversation]);
+
+  const activeSuperpowerCount = useMemo(() => {
+    if (!settings) return 3;
+    const builtInOn = Object.values(settings.builtInTools).filter(Boolean).length;
+    const mcpOn = mcpServers.filter((s) => s.enabled).length;
+    return builtInOn + mcpOn;
+  }, [settings, mcpServers]);
 
   if (loading || !settings) {
     return (
@@ -245,25 +240,57 @@ export const App: React.FC = () => {
         allowedFolders={allowedFolders}
         onFoldersChanged={setAllowedFolders}
         onProvidersChanged={refreshBootstrap}
-        onComplete={async (providerId) => {
-          const updated = await desktopApi.updateSettings({
+        onComplete={async (selectedProviderId) => {
+          const next = await desktopApi.updateSettings({
             onboardingCompleted: true,
-            activeProviderId: providerId,
+            activeProviderId: selectedProviderId,
           });
-          setSettings(updated);
+          setSettings(next);
         }}
       />
     );
   }
 
-  const handleSendMessage = async (content: string, attached: FileAttachment[]) => {
+  const handleNewChat = () => {
+    setActiveTab('chat');
+    setActiveConversationId(null);
+    setMessages([]);
+    setCanvasOpen(false);
+    setErrorBanner(null);
+  };
+
+  const handleSendMessage = async (content: string, attachments: FileAttachment[]) => {
+    setIsStreaming(true);
     setErrorBanner(null);
     const { conversationId } = await desktopApi.sendMessage({
       conversationId: activeConversationId || undefined,
       content,
-      attachments: attached,
+      attachments,
     });
     setActiveConversationId(conversationId);
+  };
+
+  const handleStopGeneration = async () => {
+    if (activeConversationId) {
+      await desktopApi.stopGeneration(activeConversationId);
+    }
+    setIsStreaming(false);
+  };
+
+  const handleResolveSafety = async (requestId: string, decision: SafetyDecision) => {
+    await desktopApi.resolveSafetyRequest(requestId, decision);
+    setPendingSafety(null);
+  };
+
+  const handleToggleTheme = async () => {
+    const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
+    const updated = await desktopApi.updateSettings({ theme: nextTheme });
+    setSettings(updated);
+  };
+
+  const handleSwitchProvider = async (providerId: ProviderId) => {
+    const updated = await desktopApi.selectActiveProvider(providerId);
+    setSettings(updated);
   };
 
   const handleToggleBuiltIn = async (key: keyof BuiltInToolSettings, enabled: boolean) => {
@@ -277,28 +304,92 @@ export const App: React.FC = () => {
   };
 
   const handlePickFolder = async () => {
-    const added = await desktopApi.pickAndAddFolder();
-    if (added) {
-      setAllowedFolders((prev) => [
-        ...prev.filter((f) => f.id !== added.id),
-        added,
-      ]);
+    const folder = await desktopApi.pickAndAddFolder();
+    if (folder) {
+      setAllowedFolders((prev) =>
+        prev.some((f) => f.id === folder.id) ? prev : [...prev, folder]
+      );
     }
   };
 
-  const handleDropFile = async (file: File): Promise<FileAttachment> => {
-    const base64Data = await fileToBase64(file);
-    return desktopApi.parseDroppedDocument({
-      name: file.name,
-      mimeType: file.type || 'application/octet-stream',
-      sizeBytes: file.size,
-      base64Data,
+  const handleUpdateFolderTrust = async (id: string, trustMode: FolderTrustMode) => {
+    const updated = await desktopApi.updateFolderTrust(id, trustMode);
+    setAllowedFolders((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  };
+
+  const handleRemoveFolder = async (id: string) => {
+    await desktopApi.removeFolder(id);
+    setAllowedFolders((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleSaveMcp = async (input: SaveMcpServerInput) => {
+    const saved = await desktopApi.saveMcpServer(input);
+    setMcpServers((prev) => {
+      const rest = prev.filter((s) => s.id !== saved.id);
+      return [...rest, saved];
     });
   };
 
-  const handleResolveSafety = async (requestId: string, decision: SafetyDecision) => {
-    await desktopApi.resolveSafetyRequest(requestId, decision);
-    setPendingSafetyRequests((prev) => prev.filter((r) => r.requestId !== requestId));
+  const handleToggleMcp = async (id: string, enabled: boolean) => {
+    const updated = await desktopApi.toggleMcpServer(id, enabled);
+    setMcpServers((prev) => prev.map((s) => (s.id === id ? updated : s)));
+  };
+
+  const handleTestMcp = async (id: string) => {
+    const res = await desktopApi.testMcpServer(id);
+    await refreshBootstrap();
+    return { ok: res.ok, message: res.message };
+  };
+
+  const handleDeleteMcp = async (id: string) => {
+    await desktopApi.deleteMcpServer(id);
+    setMcpServers((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleSaveMemory = async (input: SaveMemoryInput) => {
+    const saved = await desktopApi.saveMemory(input);
+    setMemories((prev) => {
+      const rest = prev.filter((m) => m.id !== saved.id);
+      return [saved, ...rest].sort((a, b) => Number(b.pinned) - Number(a.pinned));
+    });
+  };
+
+  const handleTogglePinMemory = async (id: string, pinned: boolean) => {
+    const saved = await desktopApi.togglePinMemory(id, pinned);
+    setMemories((prev) =>
+      prev
+        .map((m) => (m.id === id ? saved : m))
+        .sort((a, b) => Number(b.pinned) - Number(a.pinned))
+    );
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    await desktopApi.deleteMemory(id);
+    setMemories((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const handleSaveWorkflow = async (input: SaveWorkflowInput) => {
+    const saved = await desktopApi.saveWorkflow(input);
+    setWorkflows((prev) => [...prev.filter((w) => w.id !== saved.id), saved]);
+  };
+
+  const handleDeleteWorkflow = async (id: string) => {
+    await desktopApi.deleteWorkflow(id);
+    setWorkflows((prev) => prev.filter((w) => w.id !== id));
+  };
+
+  const handleRunWorkflow = (wf: WorkflowItem) => {
+    setActiveTab('chat');
+    setActiveConversationId(null);
+    setMessages([]);
+    setCanvasOpen(false);
+    setDraftInput(wf.promptTemplate);
+  };
+
+  const handleSaveArtifact = async (input: SaveArtifactInput) => {
+    const saved = await desktopApi.saveArtifact(input);
+    setArtifacts((prev) => [saved, ...prev.filter((a) => a.id !== saved.id)]);
+    return saved;
   };
 
   const handleExportArtifact = async (
@@ -316,188 +407,110 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         conversations={conversations}
         activeConversationId={activeConversationId}
-        enabledToolsCount={enabledToolsCount}
         theme={settings.theme}
+        activeSuperpowerCount={activeSuperpowerCount}
+        workflowCount={workflows.length}
         onSelectTab={setActiveTab}
-        onNewChat={() => {
-          setActiveTab('chat');
-          setActiveConversationId(null);
-          setMessages([]);
-          setActiveArtifact(null);
-        }}
+        onNewChat={handleNewChat}
         onSelectConversation={(id) => {
           setActiveConversationId(id);
-          const matchingArt = artifacts.find((a) => a.conversationId === id) || null;
-          setActiveArtifact(matchingArt);
+          setCanvasOpen(false);
         }}
         onDeleteConversation={async (id) => {
           await desktopApi.deleteConversation(id);
           setConversations((prev) => prev.filter((c) => c.id !== id));
           if (activeConversationId === id) {
-            setActiveConversationId(null);
-            setMessages([]);
-            setActiveArtifact(null);
+            handleNewChat();
           }
         }}
-        onToggleTheme={async () => {
-          const nextTheme = settings.theme === 'dark' ? 'light' : 'dark';
-          const updated = await desktopApi.updateSettings({ theme: nextTheme });
-          setSettings(updated);
-        }}
+        onToggleTheme={handleToggleTheme}
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      {/* Primary Center Surface */}
-      <div className="flex min-w-0 flex-1 overflow-hidden">
-        {activeTab === 'chat' && (
-          <>
-            <ChatWorkspace
-              messages={messages}
-              isStreaming={Boolean(streamingConvId)}
-              errorBanner={errorBanner}
-              providers={providers}
-              activeProviderId={settings.activeProviderId}
-              allowedFolders={allowedFolders}
-              workflows={workflows}
-              memoriesCount={memories.length}
-              memoryOpen={memoryOpen}
-              canvasOpen={Boolean(activeArtifact)}
-              conversationArtifacts={conversationArtifacts}
-              pendingSafetyRequests={pendingSafetyRequests}
-              prefillPrompt={prefillPrompt}
-              onClearPrefill={() => setPrefillPrompt('')}
-              onSendMessage={handleSendMessage}
-              onStopGeneration={async () => {
-                if (streamingConvId) {
-                  await desktopApi.stopGeneration(streamingConvId);
-                  setStreamingConvId(null);
-                }
-              }}
-              onSelectProvider={async (providerId: ProviderId, model?: string) => {
-                const updated = await desktopApi.selectActiveProvider(providerId, model);
-                setSettings(updated);
-                const refreshed = await desktopApi.bootstrap();
-                setProviders(refreshed.providers);
-              }}
-              onPickDocuments={() => desktopApi.pickAndParseDocuments()}
-              onDropFile={handleDropFile}
-              onPickFolder={handlePickFolder}
-              onToggleMemory={() => setMemoryOpen((v) => !v)}
-              onOpenArtifact={(art) => setActiveArtifact(art)}
-              onResolveSafety={handleResolveSafety}
-              onDismissError={() => setErrorBanner(null)}
-            />
-
-            <AnimatePresence>
-              {activeArtifact && (
-                <ArtifactCanvas
-                  key={activeArtifact.id}
-                  artifact={activeArtifact}
-                  allArtifacts={
-                    conversationArtifacts.length > 0 ? conversationArtifacts : [activeArtifact]
-                  }
-                  onSelectArtifact={setActiveArtifact}
-                  onSaveArtifact={async (input) => {
-                    const saved = await desktopApi.saveArtifact(input);
-                    setArtifacts((prev) => [
-                      saved,
-                      ...prev.filter((a) => a.id !== saved.id),
-                    ]);
-                    setActiveArtifact(saved);
-                    return saved;
-                  }}
-                  onExportArtifact={handleExportArtifact}
-                  onClose={() => setActiveArtifact(null)}
-                />
-              )}
-            </AnimatePresence>
-          </>
-        )}
-
-        {activeTab === 'workflows' && (
-          <WorkflowStudio
-            workflows={workflows}
-            onRunWorkflow={(wf) => {
-              setActiveTab('chat');
-              setActiveConversationId(null);
-              setMessages([]);
-              setPrefillPrompt(wf.promptTemplate);
-            }}
-            onSaveWorkflow={async (input) => {
-              const saved = await desktopApi.saveWorkflow(input);
-              setWorkflows((prev) => [...prev.filter((w) => w.id !== saved.id), saved]);
-            }}
-            onDeleteWorkflow={async (id) => {
-              await desktopApi.deleteWorkflow(id);
-              setWorkflows((prev) => prev.filter((w) => w.id !== id));
-            }}
-          />
-        )}
-
-        {activeTab === 'superpowers' && (
-          <SuperpowersStore
-            builtInTools={settings.builtInTools}
+      {activeTab === 'chat' && (
+        <>
+          <ChatWorkspace
+            messages={messages}
+            isStreaming={isStreaming}
+            errorBanner={errorBanner}
+            providers={providers}
+            activeProviderId={settings.activeProviderId}
             allowedFolders={allowedFolders}
-            mcpServers={mcpServers}
-            onToggleBuiltIn={handleToggleBuiltIn}
+            workflows={workflows}
+            artifactsForConversation={artifactsForConversation}
+            memoryCount={memories.length}
+            memoryOpen={memoryOpen}
+            canvasOpen={canvasOpen && Boolean(activeArtifact)}
+            pendingSafety={pendingSafety}
+            draftInput={draftInput}
+            onDraftInputChange={setDraftInput}
+            onSend={handleSendMessage}
+            onStop={handleStopGeneration}
+            onResolveSafety={handleResolveSafety}
+            onSwitchProvider={handleSwitchProvider}
+            onOpenSettings={() => setSettingsOpen(true)}
             onPickFolder={handlePickFolder}
-            onUpdateFolderTrust={async (id, trustMode) => {
-              const updated = await desktopApi.updateFolderTrust(id, trustMode);
-              setAllowedFolders((prev) => prev.map((f) => (f.id === id ? updated : f)));
+            onOpenArtifact={(art) => {
+              setActiveArtifactId(art.id);
+              setCanvasOpen(true);
             }}
-            onRemoveFolder={async (id) => {
-              await desktopApi.removeFolder(id);
-              setAllowedFolders((prev) => prev.filter((f) => f.id !== id));
-            }}
-            onSaveMcpServer={async (input) => {
-              const saved = await desktopApi.saveMcpServer(input);
-              setMcpServers((prev) => [...prev.filter((s) => s.id !== saved.id), saved]);
-            }}
-            onToggleMcpServer={async (id, enabled) => {
-              const updated = await desktopApi.toggleMcpServer(id, enabled);
-              setMcpServers((prev) => prev.map((s) => (s.id === id ? updated : s)));
-            }}
-            onTestMcpServer={async (id) => {
-              const res = await desktopApi.testMcpServer(id);
-              const refreshed = await desktopApi.bootstrap();
-              setMcpServers(refreshed.mcpServers);
-              return { ok: res.ok, message: res.message };
-            }}
-            onDeleteMcpServer={async (id) => {
-              await desktopApi.deleteMcpServer(id);
-              setMcpServers((prev) => prev.filter((s) => s.id !== id));
+            onToggleCanvas={() => setCanvasOpen((v) => !v)}
+            onToggleMemory={() => setMemoryOpen((v) => !v)}
+          />
+
+          {canvasOpen && activeArtifact && (
+            <ArtifactCanvas
+              artifact={activeArtifact}
+              allArtifacts={
+                artifactsForConversation.length > 0 ? artifactsForConversation : [activeArtifact]
+              }
+              onSelectArtifact={(art) => setActiveArtifactId(art.id)}
+              onSaveArtifact={handleSaveArtifact}
+              onExportArtifact={handleExportArtifact}
+              onClose={() => setCanvasOpen(false)}
+            />
+          )}
+
+          <MemoryDrawer
+            open={memoryOpen}
+            memories={memories}
+            autoMemoryEnabled={settings.autoMemoryEnabled}
+            onClose={() => setMemoryOpen(false)}
+            onSaveMemory={handleSaveMemory}
+            onTogglePin={handleTogglePinMemory}
+            onDeleteMemory={handleDeleteMemory}
+            onToggleAutoMemory={async (enabled) => {
+              const updated = await desktopApi.updateSettings({ autoMemoryEnabled: enabled });
+              setSettings(updated);
             }}
           />
-        )}
+        </>
+      )}
 
-        {/* Collapsible Right-Hand Live Visual Memory Drawer */}
-        <MemoryDrawer
-          open={memoryOpen}
-          memories={memories}
-          autoMemoryEnabled={settings.autoMemoryEnabled}
-          onClose={() => setMemoryOpen(false)}
-          onSaveMemory={async (input) => {
-            const saved = await desktopApi.saveMemory(input);
-            setMemories((prev) => [saved, ...prev.filter((m) => m.id !== saved.id)]);
-          }}
-          onTogglePin={async (id, pinned) => {
-            const updated = await desktopApi.togglePinMemory(id, pinned);
-            setMemories((prev) =>
-              prev
-                .map((m) => (m.id === id ? updated : m))
-                .sort((a, b) => Number(b.pinned) - Number(a.pinned))
-            );
-          }}
-          onDeleteMemory={async (id) => {
-            await desktopApi.deleteMemory(id);
-            setMemories((prev) => prev.filter((m) => m.id !== id));
-          }}
-          onToggleAutoMemory={async (enabled) => {
-            const updated = await desktopApi.updateSettings({ autoMemoryEnabled: enabled });
-            setSettings(updated);
-          }}
+      {activeTab === 'workflows' && (
+        <WorkflowStudio
+          workflows={workflows}
+          onRunWorkflow={handleRunWorkflow}
+          onSaveWorkflow={handleSaveWorkflow}
+          onDeleteWorkflow={handleDeleteWorkflow}
         />
-      </div>
+      )}
+
+      {activeTab === 'superpowers' && (
+        <SuperpowersStore
+          builtInTools={settings.builtInTools}
+          allowedFolders={allowedFolders}
+          mcpServers={mcpServers}
+          onToggleBuiltIn={handleToggleBuiltIn}
+          onPickFolder={handlePickFolder}
+          onUpdateFolderTrust={handleUpdateFolderTrust}
+          onRemoveFolder={handleRemoveFolder}
+          onSaveMcpServer={handleSaveMcp}
+          onToggleMcpServer={handleToggleMcp}
+          onTestMcpServer={handleTestMcp}
+          onDeleteMcpServer={handleDeleteMcp}
+        />
+      )}
 
       <SettingsModal
         open={settingsOpen}

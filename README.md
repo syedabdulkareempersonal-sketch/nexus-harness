@@ -1,139 +1,112 @@
 <div align="center">
-  <img src="build/icon.svg" alt="AuraDesk Logo" width="96" height="96" />
+  <img src="build/icon.svg" alt="AuraDesk Logo" width="108" height="108" />
 
   # AuraDesk
 
-  **The calm, zero-friction AI desktop workspace built for real people.**  
-  *1-click install · Zero JSON config · Zero terminal · Multi-model + Offline Local AI · Plain-English safety.*
+  **Your calm, private AI desktop workspace — ready in one click.**  
+  *No terminal. No Docker. No raw JSON config files. Ever.*
 
   [![Download for Windows](https://img.shields.io/badge/Download-Windows_.exe-B44D1B?style=for-the-badge&logo=windows&logoColor=white)](../../releases/latest)
   [![Download for macOS](https://img.shields.io/badge/Download-macOS_Universal_.dmg-18181B?style=for-the-badge&logo=apple&logoColor=white)](../../releases/latest)
   [![Download for Linux](https://img.shields.io/badge/Download-Linux_.AppImage-186E4B?style=for-the-badge&logo=linux&logoColor=white)](../../releases/latest)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-524E48?style=for-the-badge)](LICENSE)
+
+  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![100% Local SQLite](https://img.shields.io/badge/Data-100%25_Local_SQLite-emerald)](SPEC.md)
+  [![MCP Compatible](https://img.shields.io/badge/MCP-Official_SDK-orange)](SPEC.md)
 </div>
 
 ---
 
 ## Why AuraDesk Exists
 
-Powerful AI desktop agents shouldn't require a Computer Science degree, Docker containers, Python virtual environments, or hand-editing `claude_desktop_config.json` with escaped backslashes.
+Powerful AI desktop tools today force an impossible choice:
+- **Consumer chat apps** (like Claude Desktop) lock you into one vendor's paid subscription and force you to hand-edit fragile `claude_desktop_config.json` files just to connect basic local tools.
+- **Agent harnesses** (like OpenHands, OpenCode, Cline, or OpenClaw) expect you to install **Docker**, **VS Code**, **Python**, or approve scary terminal commands (`rm -rf`, `EINVAL`, raw JSON schemas).
 
-**AuraDesk** gives anyone—writers, researchers, founders, students, analysts, and developers alike—a fast, private, Apple-grade desktop studio that works immediately after downloading a single installer:
-
-- **No vendor lock-in:** Bring **Google Gemini**, **OpenAI**, **Anthropic Claude**, **OpenRouter**, or click **"Auto-Detect Local AI (Ollama)"** to run 100% offline for free.
-- **No external runtimes:** Built-in folder organization, live web research, PDF/Word/CSV analysis, and local SQLite memory ship right inside the app—no Docker, no Python, no CLI.
-- **No scary black-box actions:** Every file creation, edit, move, or external connector action pauses with a calm, plain-English approval card (**Allow Once**, **Trust This Folder**, or **Block**).
+**AuraDesk** was built from the ground up so **any person in the world**—writers, researchers, founders, students, analysts, and developers alike—can download a 1-click installer and immediately have a safe, superhuman workspace on their own computer.
 
 ---
 
 ## Breakthrough Features
 
-### 1. 30-Second Visual Onboarding Wizard
-Launch AuraDesk, paste a single API key (stored encrypted inside your OS keychain) **or** click **Auto-Detect Local AI (Ollama)** with live latency verification—or jump straight into **Guided Demo Mode** to explore every screen immediately.
+### 1. 30-Second Visual Onboarding (Bring Any AI or Run 100% Offline)
+- Paste **1 API key** (**Google Gemini**, **OpenAI**, **Anthropic Claude**, or **OpenRouter**) encrypted directly in your operating system's native keychain (`safeStorage`).
+- **OR** click **Auto-Detect Local AI (Ollama)** to discover models running privately on your own machine (`llama3.2`, `qwen2.5`, `gemma3`, `mistral`) with zero cloud cost.
+- **OR** explore **Guided Demo Mode** right out of the box before connecting a key.
 
-### 2. 1-Click Superpowers & Visual MCP App Store
-Zero curly braces `{}` or broken config paths:
-- **Smart Folder Assistant:** Pick the exact folders AuraDesk is allowed to see via your native OS folder picker.
-- **Live Web Research & Page Reader:** Searches live web sources and strips ads and clutter into clean readable articles.
-- **Document & PDF Analyst:** Drag and drop `.pdf`, `.docx`, `.csv`, `.tsv`, or `.md` files directly onto the chat composer for instant summaries, tables, and column math.
-- **Visual MCP Connector:** Connect Notion, GitHub, or custom Model Context Protocol servers via a friendly visual form with automatic background process cleanup.
+### 2. 1-Click Superpowers & Visual MCP App Store (Zero JSON)
+- **Smart Folder Assistant:** Choose exactly which folders AuraDesk can see via your native OS folder picker. AuraDesk cannot touch anything outside folders you share.
+- **Live Web Research & Clean Page Reader:** Built-in web search and clutter-free article extraction—no search API key required.
+- **Document & PDF Analyst:** Drag and drop `.pdf`, `.docx`, `.csv`, `.tsv`, or `.md` files right onto the chat composer for instant summaries, tables, and column totals.
+- **Visual MCP Connector:** Connect Notion, GitHub, or custom Model Context Protocol servers with a friendly visual form—never edit a curly brace `{}` again.
 
 ### 3. Plain-English Safety & Trust Guardrails
-Whenever AuraDesk wants to create a folder, write a summary file, rename documents, or move clutter to your system Recycle Bin / Trash, execution pauses and displays:
-- **What** will happen in plain English
-- **Why** AuraDesk is asking (plus an expandable preview of the exact content)
-- One-click **[Allow Once]**, **[Trust This Folder]**, or **[Block]** controls
+Whenever AuraDesk wants to create, edit, move, or trash a file—or run an external connector action—it pauses and displays a calm human-readable approval card explaining **what** will happen and **why**:
+- **[Allow Once]** · **[Trust This Folder]** · **[Block]**
+- File removal exclusively uses your system **Recycle Bin / Trash**, never permanent deletion.
 
 ### 4. Live Visual Memory Board
-Open the collapsible right-hand **Memory** drawer anytime to view *"What AuraDesk Remembers About You"* as editable sticky-note cards saved locally in SQLite. Pin, edit inline, add, or delete any memory in 1 click.
+Open the right-hand **Memory** drawer anytime to see *"What AuraDesk Remembers About You"* as editable sticky-note cards stored locally in SQLite. Pin, edit, add, or delete any memory in 1 click.
 
 ### 5. 1-Click Workflow Studio
-Run pre-loaded everyday skills in a single click—**Clean & Organize My Folder**, **Deep Internet Research Report**, **Summarize & Extract Action Items**, and **Draft & Polish Content**—or save your own custom workflows visually.
+Launch pre-loaded everyday workflows—**Clean & Organize My Folder**, **Deep Internet Research Report**, **Summarize & Extract Action Items**, and **Draft & Polish Content**—or save your own custom workflows visually.
 
 ### 6. Split-View Artifact & Live Preview Canvas
-Reports, formatted Markdown tables, code, and interactive HTML webpages open automatically in a clean right-hand **Canvas** where you can preview live, edit directly, copy, or export in 1 click to **PDF**, **Markdown (`.md`)**, or **HTML (`.html`)**.
-
-### 7. Studio Daylight & Warm Obsidian UI
-Seamless Light & Dark modes, live plain-English tool activity pills (*"Looking inside your Downloads folder..."*, *"Reading clean article..."*), keyboard shortcuts (`Ctrl/Cmd + N`, `Ctrl/Cmd + M`), and full `prefers-reduced-motion` accessibility.
+Reports, tables, code, and interactive webpages open side-by-side in a clean **Canvas** where you can **Edit** directly, **Copy**, or **Export in 1 Click** to **PDF**, **Markdown (`.md`)**, or **Webpage (`.html`)**.
 
 ---
 
-## Architecture
+## How AuraDesk Works Under the Hood
 
 ```mermaid
 flowchart LR
-    subgraph UI["React + TypeScript + Tailwind + Framer Motion"]
-        Wizard["30s Onboarding"]
-        Chat["Workspace & Activity Pills"]
-        Store["Visual Superpowers & MCP"]
-        Memory["Sticky-Note Memory Board"]
-        Canvas["Split-View Live Canvas"]
-        Safety["Plain-English Approval Card"]
-    end
-
-    subgraph Core["Electron Main Process (Zero External Runtimes)"]
-        IPC["Context-Isolated Preload Bridge"]
-        Router["Vercel AI SDK Multi-Model Router\n(Gemini · OpenAI · Claude · OpenRouter · Ollama)"]
-        Gate["SafetyGate & Canonical Path Sandbox"]
-        Tools["Built-In Folder · Web · PDF/DOCX/CSV Tools"]
-        MCP["Official @modelcontextprotocol/sdk Supervisor"]
-        Vault["OS Keychain Encryption (safeStorage)"]
-        DB[("Native SQLite (auradesk.sqlite)")]
-    end
-
-    UI <--> IPC
-    IPC <--> Router
-    Router --> Gate
-    Gate --> Tools
-    Gate --> MCP
-    Router <--> DB
-    Vault <--> DB
+    User["You (Mac / Windows / Linux)"] --> UI["React + Tailwind + Framer Motion Studio\n(Chat · Canvas · Memory · Workflows · Superpowers)"]
+    UI <-->|"Context-Isolated IPC"| Core["Electron Main Process (Zero External Runtimes)"]
+    Core --> Vault["OS Keychain Encryption\n(DPAPI / Keychain / libsecret)"]
+    Core --> DB[("Local SQLite\n(auradesk.sqlite)")]
+    Core --> Guard["Plain-English Safety Gate\n& Canonical Folder Sandbox"]
+    Guard --> BuiltIn["Built-In Superpowers\n(Folders · Web Reader · PDF/CSV/DOCX)"]
+    Guard --> MCP["Official @modelcontextprotocol/sdk\n(Clean Process Supervisor)"]
+    Core --> AI["Vercel AI SDK Multi-Model Router\n(Gemini · OpenAI · Claude · OpenRouter · Local Ollama)"]
 ```
-
----
-
-## How AuraDesk Compares
-
-| Capability | Claude Desktop | Cline / OpenCode | OpenHands / Hermes | **AuraDesk** |
-| :--- | :---: | :---: | :---: | :---: |
-| **1-Click Native Desktop App** | Yes | IDE / CLI | Docker / Server | **Yes (`.exe`, `.dmg`, `.AppImage`)** |
-| **Multi-Provider + Local Ollama** | Locked to Claude | Yes | Yes | **Yes (1-Click Switcher)** |
-| **Zero JSON MCP Setup** | Raw JSON | Raw JSON | CLI / YAML | **Visual Form + Presets** |
-| **Zero Docker / Python Required** | Partial (for MCPs) | Needs Node/Git | Needs Docker | **100% Self-Contained** |
-| **Plain-English Folder Guardrails** | Technical | Diff / Shell | Container ACLs | **Allow Once / Trust Folder / Block** |
-| **Visual Editable Memory Board** | Cloud / Opaque | None | Server Files | **Local SQLite Sticky Cards** |
-| **1-Click PDF / HTML / MD Canvas** | Copy / Download | Editor Tabs | Raw Files | **Live Edit + Native PDF Export** |
 
 ---
 
 ## 60-Second Quickstart
 
 ### For Everyday Users (Zero Terminal)
-1. Visit the [**Releases**](../../releases/latest) page and download the installer for your computer:
-   - **Windows:** `AuraDesk-Setup-1.0.0-Windows.exe`
-   - **macOS (Apple Silicon & Intel):** `AuraDesk-1.0.0-macOS-Universal.dmg`
-   - **Linux:** `AuraDesk-1.0.0-Linux-x86_64.AppImage`
-2. Open **AuraDesk**.
-3. Paste any API key (Gemini, OpenAI, Claude, or OpenRouter), click **Auto-Detect Local AI (Ollama)**, or click **Explore Guided Demo Mode**—and start working immediately.
+1. Go to the [**Releases**](../../releases/latest) page.
+2. Download the 1-click installer for your computer:
+   - **Windows:** `AuraDesk-Setup-1.0.0.exe`
+   - **macOS (Apple Silicon & Intel Universal):** `AuraDesk-1.0.0-Universal.dmg`
+   - **Linux:** `AuraDesk-1.0.0-x86_64.AppImage`
+3. Open **AuraDesk**, paste 1 API key (or click **Auto-Detect Local AI**), and start working!
 
 ### For Developers & Contributors
 ```bash
 # 1. Clone and install dependencies
 git clone https://github.com/YOUR_USERNAME/auradesk.git
 cd auradesk
-npm install
+npm install --foreground-scripts
 
-# 2. Typecheck, run tests, and launch AuraDesk locally
-npm run typecheck
-npm test
+# 2. Build icons, React studio, and Electron bundles, then launch
 npm run preview:desktop
 
-# 3. Build a 1-click installer for your current OS
-npm run dist
+# 3. Run TypeScript checks & automated security/SQLite test suite
+npm run typecheck
+npm test
+
+# 4. Build native 1-click installers locally
+npm run dist:win    # Windows .exe (NSIS)
+npm run dist:mac    # macOS Universal .dmg
+npm run dist:linux  # Linux .AppImage
 ```
 
-### Publishing Automated Multi-OS Releases on GitHub
-AuraDesk includes a ready-to-run GitHub Actions pipeline ([`.github/workflows/release.yml`](.github/workflows/release.yml)) that compiles Windows `.exe`, macOS Universal `.dmg`, and Linux `.AppImage` installers automatically whenever you push a version tag:
+---
+
+## Publishing a New GitHub Release (`v1.0.0`)
+
+AuraDesk includes a pre-configured GitHub Actions pipeline in [`.github/workflows/release.yml`](.github/workflows/release.yml). Pushing any `v*` tag automatically builds and attaches the Windows `.exe`, macOS Universal `.dmg`, and Linux `.AppImage` installers to a public GitHub Release:
 
 ```bash
 git remote add origin https://github.com/YOUR_USERNAME/auradesk.git
@@ -144,9 +117,12 @@ git push origin v1.0.0
 
 ---
 
-## Documentation
+## Product Documentation
 - [**Live Competitor & UX Friction Research (`RESEARCH.md`)**](RESEARCH.md)
-- [**System Architecture & Product Blueprint (`SPEC.md`)**](SPEC.md)
+- [**System Architecture & UI/UX Blueprint (`SPEC.md`)**](SPEC.md)
+
+---
 
 ## License
-Released under the [MIT License](LICENSE).
+
+Released under the [MIT License](LICENSE). Built for humans everywhere.

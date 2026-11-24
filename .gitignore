@@ -1,29 +1,21 @@
 # Dependencies
 node_modules/
-.npm/
 
-# Build outputs & packaged binaries
+# Build & Packaging Outputs
 dist/
 dist-electron/
 release/
-out/
 
-# Local SQLite databases & test artifacts
+# Local SQLite Databases & Logs
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
-*.db
+*.log
 smoke-report.json
 
-# Environment & local secrets
+# Environment & OS Metadata
 .env
 .env.*
-!.env.example
-
-# OS & Editor metadata
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-*.log
-npm-debug.log*
+.impeccable/
