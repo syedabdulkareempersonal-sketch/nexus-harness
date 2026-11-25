@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { tool, type CoreTool } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { assertAllowedPath } from '../security/pathGuard';
 import type { SafetyGate } from '../security/safetyGate';
@@ -73,18 +73,24 @@ async function ensureWritePermission(
   return decision === 'allow_once';
 }
 
-export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreTool> {
+export function buildFolderTools(ctx: FolderToolContext): ToolSet {
   return {
     list_shared_folders: tool({
       description:
         'Lists the folders on this computer that the user has shared with AuraDesk so you know which paths are available.',
-      parameters: z.object({}),
+      inputSchema: z.object({
+        includeDetails: z
+          .boolean()
+          .nullable()
+          .optional()
+          .describe('Pass true to list all shared folders and their trust settings'),
+      }),
       execute: async () => {
         const folders = ctx.getAllowedFolders();
         if (folders.length === 0) {
           return {
             sharedFolders: [],
-            note: 'No folders are shared yet. Politely invite the user to click "+ Add Folder" in Superpowers or the chat attachment bar.',
+            note: 'No folders are shared yet. Politely invite the user to click "Choose Folder" below the chat box.',
           };
         }
         return {
@@ -100,7 +106,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
     list_folder_contents: tool({
       description:
         'Lists files and subfolders inside a user-shared folder path, including sizes, categories, and last modified dates.',
-      parameters: z.object({
+      inputSchema: z.object({
         folderPath: z.string().describe('Full path of the shared folder or subfolder to inspect'),
       }),
       execute: async ({ folderPath }) => {
@@ -109,7 +115,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
         ctx.emitActivity({
           id: activityId,
           toolName: 'list_folder_contents',
-          friendlyLabel: `Looking inside your "${shortName}" folder...`,
+          friendlyLabel: `Looking inside "${shortName}"...`,
           status: 'running',
         });
 
@@ -140,7 +146,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
           ctx.emitActivity({
             id: activityId,
             toolName: 'list_folder_contents',
-            friendlyLabel: `Inspected ${items.length} items in "${shortName}"`,
+            friendlyLabel: `Checked ${items.length} items in "${shortName}"`,
             status: 'completed',
           });
 
@@ -165,7 +171,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
 
     search_files_in_folder: tool({
       description: 'Searches for files matching a keyword or extension inside a shared folder.',
-      parameters: z.object({
+      inputSchema: z.object({
         folderPath: z.string().describe('Root shared folder path to search within'),
         query: z.string().describe('Filename keyword or extension such as ".pdf" or "invoice"'),
       }),
@@ -223,7 +229,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
           ctx.emitActivity({
             id: activityId,
             toolName: 'search_files_in_folder',
-            friendlyLabel: `Found ${matches.length} matching items in "${shortName}"`,
+            friendlyLabel: `Found ${matches.length} matching items`,
             status: 'completed',
           });
 
@@ -244,7 +250,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
     read_text_file: tool({
       description:
         'Reads the text contents of a plain-text, Markdown, CSV, JSON, HTML, or source file inside a shared folder.',
-      parameters: z.object({
+      inputSchema: z.object({
         filePath: z.string().describe('Full path to the file inside a shared folder'),
       }),
       execute: async ({ filePath }) => {
@@ -271,7 +277,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
           ctx.emitActivity({
             id: activityId,
             toolName: 'read_text_file',
-            friendlyLabel: `Finished reading "${fileName}"`,
+            friendlyLabel: `Read "${fileName}"`,
             status: 'completed',
           });
 
@@ -298,7 +304,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
     create_subfolder: tool({
       description:
         'Creates a new subfolder inside a shared folder to help organize files neatly. Triggers user approval unless the folder is trusted.',
-      parameters: z.object({
+      inputSchema: z.object({
         folderPath: z.string().describe('Full path of the new subfolder to create'),
         reason: z.string().describe('Plain-English explanation of why this folder helps the user'),
       }),
@@ -359,7 +365,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
     save_file_in_folder: tool({
       description:
         'Creates or updates a text/Markdown/CSV/HTML file inside a shared folder, pausing for Plain-English user approval first.',
-      parameters: z.object({
+      inputSchema: z.object({
         filePath: z.string().describe('Full path where the file should be saved'),
         content: z.string().describe('Complete text content to write into the file'),
         reason: z.string().describe('Plain-English explanation of why saving this file is helpful'),
@@ -430,7 +436,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
     move_or_rename_file: tool({
       description:
         'Moves or renames a file inside shared folders (without overwriting existing files), pausing for user approval first.',
-      parameters: z.object({
+      inputSchema: z.object({
         sourcePath: z.string().describe('Current full path of the file'),
         destinationPath: z.string().describe('New full path for the file'),
         reason: z.string().describe('Plain-English explanation of why moving or renaming helps'),
@@ -505,7 +511,7 @@ export function buildFolderTools(ctx: FolderToolContext): Record<string, CoreToo
     move_file_to_trash: tool({
       description:
         'Moves an unwanted file to the operating system Recycle Bin / Trash (recoverable, never permanent deletion). Always asks the user first.',
-      parameters: z.object({
+      inputSchema: z.object({
         filePath: z.string().describe('Full path of the file to move to Trash / Recycle Bin'),
         reason: z.string().describe('Plain-English explanation of why this file can be trashed'),
       }),

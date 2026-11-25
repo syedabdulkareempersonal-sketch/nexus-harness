@@ -168,9 +168,9 @@ export const SuperpowersStore: React.FC<SuperpowersStoreProps> = ({
     <div className="win12-island h-full flex-1 overflow-y-auto rounded-2xl px-6 py-8 sm:px-10">
       <div className="mx-auto max-w-4xl space-y-10">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Superpowers &amp; App Connectors</h1>
+          <h1 className="text-2xl font-semibold text-ink">Tools &amp; Shared Folders</h1>
           <p className="mt-1.5 max-w-[65ch] text-sm leading-relaxed text-ink-secondary">
-            Switch capabilities on or off in one click. Everything below runs with zero config files—and AuraDesk always asks in plain English before changing any file.
+            Choose which folders AuraDesk can see and switch built-in helpers on or off. AuraDesk always asks in plain English before changing any file.
           </p>
         </div>
 

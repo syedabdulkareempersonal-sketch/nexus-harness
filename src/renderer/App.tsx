@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArtifactCanvas } from './components/ArtifactCanvas';
-import { ChatWorkspace } from './components/ChatWorkspace';
+import { ChatWorkspace, type GuidedTaskMode } from './components/ChatWorkspace';
 import { CommandPalette } from './components/CommandPalette';
 import { MemoryDrawer } from './components/MemoryDrawer';
 import { OnboardingWizard } from './components/OnboardingWizard';
@@ -48,6 +48,7 @@ export const App: React.FC = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draftInput, setDraftInput] = useState('');
+  const [guidedTask, setGuidedTask] = useState<GuidedTaskMode>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
@@ -75,7 +76,6 @@ export const App: React.FC = () => {
     void refreshBootstrap();
   }, [refreshBootstrap]);
 
-  // Apply Daylight / Midnight Mica theme cleanly
   useEffect(() => {
     if (!settings) return;
     const prefersDark =
@@ -87,12 +87,13 @@ export const App: React.FC = () => {
 
   const loadConversationHistory = useCallback(async (id: string) => {
     setActiveConversationId(id);
+    setGuidedTask(null);
     setErrorBanner(null);
     const loaded = await desktopApi.getMessages(id);
     setMessages(loaded);
   }, []);
 
-  // Instant keyboard shortcuts: Ctrl+N (New Session) & Ctrl+K (Quick Command Launcher)
+  // Power-user shortcuts stay available invisibly without cluttering buttons
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
@@ -100,6 +101,7 @@ export const App: React.FC = () => {
         setActiveTab('chat');
         setActiveConversationId(null);
         setMessages([]);
+        setGuidedTask(null);
         setCanvasOpen(false);
         setErrorBanner(null);
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -111,7 +113,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Subscribe to real-time main-process stream events
   useEffect(() => {
     const unsubscribe = desktopApi.onStreamEvent((event) => {
       if (event.type === 'conversation-ready') {
@@ -210,9 +211,8 @@ export const App: React.FC = () => {
   }, []);
 
   const artifactsForConversation = useMemo(() => {
-    if (!activeConversationId) return artifacts.slice(0, 6);
-    const matching = artifacts.filter((a) => a.conversationId === activeConversationId);
-    return matching.length > 0 ? matching : [];
+    if (!activeConversationId) return [];
+    return artifacts.filter((a) => a.conversationId === activeConversationId);
   }, [artifacts, activeConversationId]);
 
   const activeArtifact = useMemo(() => {
@@ -223,13 +223,6 @@ export const App: React.FC = () => {
     return artifactsForConversation[0] || null;
   }, [artifacts, activeArtifactId, artifactsForConversation]);
 
-  const activeSuperpowerCount = useMemo(() => {
-    if (!settings) return 3;
-    const builtInOn = Object.values(settings.builtInTools).filter(Boolean).length;
-    const mcpOn = mcpServers.filter((s) => s.enabled).length;
-    return builtInOn + mcpOn;
-  }, [settings, mcpServers]);
-
   const activeProviderObj = useMemo(
     () => providers.find((p) => p.id === settings?.activeProviderId) ?? providers[0],
     [providers, settings?.activeProviderId]
@@ -238,7 +231,7 @@ export const App: React.FC = () => {
   if (loading || !settings) {
     return (
       <div className="win12-mica-bg flex h-screen w-screen items-center justify-center text-sm font-medium text-ink-secondary">
-        Launching AuraDesk Studio...
+        Opening AuraDesk...
       </div>
     );
   }
@@ -273,6 +266,7 @@ export const App: React.FC = () => {
     setActiveTab('chat');
     setActiveConversationId(null);
     setMessages([]);
+    setGuidedTask(null);
     setCanvasOpen(false);
     setErrorBanner(null);
   };
@@ -317,13 +311,14 @@ export const App: React.FC = () => {
     setSettings(updated);
   };
 
-  const handlePickFolder = async () => {
+  const handlePickFolder = async (): Promise<AllowedFolder | null> => {
     const folder = await desktopApi.pickAndAddFolder();
     if (folder) {
       setAllowedFolders((prev) =>
         prev.some((f) => f.id === folder.id) ? prev : [...prev, folder]
       );
     }
+    return folder;
   };
 
   const handleUpdateFolderTrust = async (id: string, trustMode: FolderTrustMode) => {
@@ -397,7 +392,23 @@ export const App: React.FC = () => {
     setActiveConversationId(null);
     setMessages([]);
     setCanvasOpen(false);
-    setDraftInput(wf.promptTemplate);
+    // Map built-in workflows to friendly 1-step guided cards instead of dumping raw prompts!
+    if (wf.id === 'wf-clean-organize-folder') {
+      setGuidedTask('folder');
+      setDraftInput('');
+    } else if (wf.id === 'wf-deep-internet-research') {
+      setGuidedTask('research');
+      setDraftInput('');
+    } else if (wf.id === 'wf-summarize-action-items') {
+      setGuidedTask('document');
+      setDraftInput('');
+    } else if (wf.id === 'wf-draft-polish-content') {
+      setGuidedTask('write');
+      setDraftInput('');
+    } else {
+      setGuidedTask(null);
+      setDraftInput(wf.promptTemplate);
+    }
   };
 
   const handleSaveArtifact = async (input: SaveArtifactInput) => {
@@ -417,7 +428,6 @@ export const App: React.FC = () => {
 
   return (
     <div className="win12-mica-bg flex h-screen w-screen flex-col overflow-hidden text-ink">
-      {/* Windows 12 Pro Frameless Top Shell */}
       <WindowTitleBar
         activeProvider={activeProviderObj}
         theme={settings.theme}
@@ -425,21 +435,19 @@ export const App: React.FC = () => {
         memoryOpen={memoryOpen}
         artifactCount={artifactsForConversation.length}
         canvasOpen={canvasOpen && Boolean(activeArtifact)}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         onToggleMemory={() => setMemoryOpen((v) => !v)}
         onToggleCanvas={() => setCanvasOpen((v) => !v)}
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Detached Floating Glass Islands */}
       <div className="flex min-h-0 flex-1 gap-2.5 px-2.5 pb-2.5">
         <Sidebar
           activeTab={activeTab}
           conversations={conversations}
           activeConversationId={activeConversationId}
-          activeSuperpowerCount={activeSuperpowerCount}
-          workflowCount={workflows.length}
+          activeProvider={activeProviderObj}
+          sharedFolderCount={allowedFolders.length}
           onSelectTab={setActiveTab}
           onNewChat={handleNewChat}
           onSelectConversation={(id) => {
@@ -468,12 +476,13 @@ export const App: React.FC = () => {
               workflows={workflows}
               artifactsForConversation={artifactsForConversation}
               pendingSafety={pendingSafety}
+              guidedTask={guidedTask}
+              onSelectGuidedTask={setGuidedTask}
               draftInput={draftInput}
               onDraftInputChange={setDraftInput}
               onSend={handleSendMessage}
               onStop={handleStopGeneration}
               onResolveSafety={handleResolveSafety}
-              onSwitchProvider={handleSwitchProvider}
               onOpenSettings={() => setSettingsOpen(true)}
               onPickFolder={handlePickFolder}
               onOpenArtifact={(art) => {
@@ -528,7 +537,9 @@ export const App: React.FC = () => {
             allowedFolders={allowedFolders}
             mcpServers={mcpServers}
             onToggleBuiltIn={handleToggleBuiltIn}
-            onPickFolder={handlePickFolder}
+            onPickFolder={async () => {
+              await handlePickFolder();
+            }}
             onUpdateFolderTrust={handleUpdateFolderTrust}
             onRemoveFolder={handleRemoveFolder}
             onSaveMcpServer={handleSaveMcp}
@@ -559,7 +570,9 @@ export const App: React.FC = () => {
         onOpenSettings={() => setSettingsOpen(true)}
         onToggleMemory={() => setMemoryOpen((v) => !v)}
         onToggleTheme={handleToggleTheme}
-        onPickFolder={handlePickFolder}
+        onPickFolder={async () => {
+          await handlePickFolder();
+        }}
         onSwitchProvider={(id) => handleSwitchProvider(id)}
         onRunWorkflow={handleRunWorkflow}
       />

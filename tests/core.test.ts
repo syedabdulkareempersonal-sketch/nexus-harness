@@ -73,26 +73,39 @@ describe('AuraDesk Core Backend & Security Suite', () => {
     expect(clearedOpenAi.isVerified).toBe(false);
     expect(db.getProviderSecret('google').config.isVerified).toBe(true);
 
-    // Cross-provider key mismatch helper catches wrong tab pastes
+    // Cross-provider key mismatch helper catches wrong tab pastes (including 2026 AQ. Gemini keys)
     expect(detectKeyProviderMismatch('openai', 'AIzaSyAbc123').mismatch).toBe(true);
+    expect(detectKeyProviderMismatch('openai', 'AQ.Ab8RN6TestKey').mismatch).toBe(true);
     expect(detectKeyProviderMismatch('google', 'AIzaSyAbc123').mismatch).toBe(false);
+    expect(detectKeyProviderMismatch('google', 'AQ.Ab8RN6TestKey').mismatch).toBe(false);
     expect(detectKeyProviderMismatch('google', 'sk-ant-api03-xyz').mismatch).toBe(true);
 
+    // Automatic healing of restricted gemini-4-* defaults on reopen
+    db.saveProviderCredentials({
+      providerId: 'google',
+      selectedModel: 'gemini-4-argon',
+      availableModels: ['gemini-4-argon', 'gemini-3.6-flash', 'gemini-2.5-pro'],
+      isVerified: true,
+    });
+    db.close();
+    const reopenedDb = new AuraDatabase(path.join(dir, 'auradesk.sqlite'));
+    expect(reopenedDb.getProviderSecret('google').config.selectedModel).toBe('gemini-3.6-flash');
+
     // Memory CRUD & pinning
-    const m1 = db.saveMemory({ content: 'Prefers concise tables', category: 'Preferences' });
-    const m2 = db.saveMemory({
+    const m1 = reopenedDb.saveMemory({ content: 'Prefers concise tables', category: 'Preferences' });
+    const m2 = reopenedDb.saveMemory({
       content: 'Name is Kareem',
       category: 'About You',
       pinned: true,
     });
-    const list = db.listMemories();
+    const list = reopenedDb.listMemories();
     expect(list[0].id).toBe(m2.id);
     expect(list.length).toBe(2);
-    db.deleteMemory(m1.id);
-    expect(db.listMemories().length).toBe(1);
+    reopenedDb.deleteMemory(m1.id);
+    expect(reopenedDb.listMemories().length).toBe(1);
 
     // Visual MCP Connector secret storage
-    const mcp = db.saveMcpServer({
+    const mcp = reopenedDb.saveMcpServer({
       name: 'Notion Connector',
       description: 'Reads project pages',
       transport: 'streamable-http',
@@ -100,20 +113,20 @@ describe('AuraDesk Core Backend & Security Suite', () => {
       envVars: { API_KEY: 'ntn_secret_123' },
     });
     expect(mcp.envKeys).toEqual(['API_KEY']);
-    expect(db.getMcpServerWithSecrets(mcp.id).envVars.API_KEY).toBe('ntn_secret_123');
+    expect(reopenedDb.getMcpServerWithSecrets(mcp.id).envVars.API_KEY).toBe('ntn_secret_123');
 
     // Canvas Artifact CRUD
-    const conv = db.createConversation('Q4 Planning');
-    const artifact = db.saveArtifact({
+    const conv = reopenedDb.createConversation('Q4 Planning');
+    const artifact = reopenedDb.saveArtifact({
       conversationId: conv.id,
       title: 'Q4 Summary',
       kind: 'markdown',
       content: '# Q4 Summary\n\nAll on track.',
     });
-    expect(db.listArtifacts()[0].title).toBe('Q4 Summary');
-    expect(db.getArtifact(artifact.id)?.content).toContain('All on track');
+    expect(reopenedDb.listArtifacts()[0].title).toBe('Q4 Summary');
+    expect(reopenedDb.getArtifact(artifact.id)?.content).toContain('All on track');
 
-    db.close();
+    reopenedDb.close();
   });
 
   it('enforces strict canonical folder sandboxing and blocks path traversal', () => {

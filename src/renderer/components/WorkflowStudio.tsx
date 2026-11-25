@@ -81,9 +81,9 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({
       <div className="mx-auto max-w-4xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-ink">1-Click Workflow Studio</h1>
+            <h1 className="text-2xl font-semibold text-ink">Quick Tasks</h1>
             <p className="mt-1.5 max-w-[65ch] text-sm leading-relaxed text-ink-secondary">
-              Launch repeatable everyday tasks in a single click—or save your own favorite instructions as a reusable button.
+              Start everyday tasks in one click—or save your own favorite instructions as a reusable shortcut.
             </p>
           </div>
 
@@ -95,12 +95,12 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({
             {creating ? (
               <>
                 <X className="h-3.5 w-3.5" strokeWidth={2} />
-                Close Creator
+                Close
               </>
             ) : (
               <>
                 <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                New Custom Workflow
+                Create My Own Task
               </>
             )}
           </button>
@@ -282,7 +282,7 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({
                   onClick={() => onRunWorkflow(wf)}
                   className="tactile-press inline-flex items-center gap-1.5 rounded-xl border border-strongline bg-canvas px-4 py-2 text-xs font-semibold text-ink hover:border-accent hover:bg-accent hover:text-accent-ink"
                 >
-                  Use Workflow
+                  Start Task
                   <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.9} />
                 </button>
               </div>

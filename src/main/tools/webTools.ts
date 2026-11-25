@@ -1,4 +1,4 @@
-import { tool, type CoreTool } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import type { ToolActivity } from '@shared/types';
 
@@ -118,7 +118,7 @@ async function searchWikipediaFallback(
     query
   )}&utf8=&format=json&srlimit=5`;
   const res = await fetch(endpoint, {
-    headers: { 'User-Agent': 'AuraDesk/1.0 (Open-Source Desktop Workspace)' },
+    headers: { 'User-Agent': 'AuraDesk/1.2 (Open-Source Desktop Workspace)' },
     signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) return [];
@@ -132,12 +132,12 @@ async function searchWikipediaFallback(
   }));
 }
 
-export function buildWebTools(ctx: WebToolContext): Record<string, CoreTool> {
+export function buildWebTools(ctx: WebToolContext): ToolSet {
   return {
     web_search: tool({
       description:
         'Searches the live internet for up-to-date facts, articles, products, news, and reference pages.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('Clear search query'),
       }),
       execute: async ({ query }) => {
@@ -158,7 +158,7 @@ export function buildWebTools(ctx: WebToolContext): Record<string, CoreTool> {
           ctx.emitActivity({
             id: activityId,
             toolName: 'web_search',
-            friendlyLabel: `Found ${results.length} live web sources for "${query}"`,
+            friendlyLabel: `Found ${results.length} web sources`,
             status: 'completed',
           });
 
@@ -181,9 +181,10 @@ export function buildWebTools(ctx: WebToolContext): Record<string, CoreTool> {
 
     read_webpage: tool({
       description:
-        'Opens a public web URL and extracts clean, ad-free readable article text and headings.',
-      parameters: z.object({
-        url: z.string().url().describe('Public http or https webpage URL to read'),
+        'Opens a public http/https web URL and extracts clean, ad-free readable article text and headings.',
+      inputSchema: z.object({
+        // Plain string (no .url() format:"uri") for 100% Gemini & OpenAI strict schema compatibility
+        url: z.string().describe('Full public https:// or http:// webpage URL to read'),
       }),
       execute: async ({ url }) => {
         const activityId = `act-${Date.now()}-readpage`;
@@ -197,7 +198,7 @@ export function buildWebTools(ctx: WebToolContext): Record<string, CoreTool> {
         ctx.emitActivity({
           id: activityId,
           toolName: 'read_webpage',
-          friendlyLabel: `Reading clean article from ${hostname}...`,
+          friendlyLabel: `Reading article from ${hostname}...`,
           status: 'running',
         });
 

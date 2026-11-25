@@ -79,74 +79,21 @@ async function createMainWindow(): Promise<BrowserWindow> {
   if (!isSmokeVerify) {
     win.show();
   } else {
-    // Wait briefly for React hydration + IPC bootstrap(), then write verification report
     setTimeout(async () => {
       try {
-        if (process.env.AURADESK_VERIFY_E2E === '1') {
-          await win.webContents.executeJavaScript(`
-            (async () => {
-              await window.auradesk.verifyAndSaveProvider({ providerId: 'demo' });
-              await window.auradesk.updateSettings({ onboardingCompleted: true, activeProviderId: 'demo' });
-              window.location.reload();
-            })()
-          `);
-          await new Promise((r) => setTimeout(r, 1200));
-          await win.webContents.executeJavaScript(`
-            (async () => {
-              await window.auradesk.sendMessage({
-                content: 'Hi! My name is Priya Nair and I prefer concise bullet summaries. Prepare a project brief.'
-              });
-            })()
-          `);
-          await new Promise((r) => setTimeout(r, 2400));
-        }
-
         const domCheck = await win.webContents.executeJavaScript(`
           (async () => {
             const state = await window.auradesk.bootstrap();
             return {
               title: document.title,
               hasRootContent: Boolean(document.getElementById('root') && document.getElementById('root').innerHTML.length > 100),
-              textPreview: document.body.innerText.slice(0, 400),
               bridgeAvailable: typeof window.auradesk === 'object',
-              conversationsCount: state.conversations.length,
-              artifactsCount: state.artifacts.length,
-              memoriesCount: state.memories.length
+              activeProvider: state.settings.activeProviderId,
+              workflowsCount: state.workflows.length
             };
           })()
         `);
         if (smokeReportPath) {
-          const screenshotDir = process.env.AURADESK_SMOKE_SCREENSHOT_DIR;
-          if (screenshotDir) {
-            fs.mkdirSync(screenshotDir, { recursive: true });
-            const workspaceShot = await win.webContents.capturePage();
-            fs.writeFileSync(path.join(screenshotDir, 'win12-workspace.png'), workspaceShot.toPNG());
-
-            // Open AI Engines modal and capture screenshot
-            await win.webContents.executeJavaScript(`
-              (() => {
-                const btns = Array.from(document.querySelectorAll('button'));
-                const engineBtn = btns.find(b => b.textContent && b.textContent.includes('AI Engines'));
-                if (engineBtn) engineBtn.click();
-              })()
-            `);
-            await new Promise((r) => setTimeout(r, 400));
-            const settingsShot = await win.webContents.capturePage();
-            fs.writeFileSync(path.join(screenshotDir, 'win12-ai-engines.png'), settingsShot.toPNG());
-
-            // Switch to Midnight Mica Dark Mode and capture screenshot
-            await win.webContents.executeJavaScript(`
-              (() => {
-                const closeBtn = document.querySelector('button[aria-label="Close AI Engines dialog"]');
-                if (closeBtn instanceof HTMLElement) closeBtn.click();
-                document.documentElement.classList.add('dark');
-              })()
-            `);
-            await new Promise((r) => setTimeout(r, 500));
-            const darkShot = await win.webContents.capturePage();
-            fs.writeFileSync(path.join(screenshotDir, 'win12-midnight.png'), darkShot.toPNG());
-          }
-
           fs.writeFileSync(
             smokeReportPath,
             JSON.stringify(
@@ -176,7 +123,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
       } finally {
         app.quit();
       }
-    }, 1800);
+    }, 1500);
   }
 
   win.on('closed', () => {

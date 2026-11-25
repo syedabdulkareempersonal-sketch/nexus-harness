@@ -16,7 +16,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { PROVIDER_META, ProviderBrandIcon } from './ProviderBrandIcon';
+import {
+  formatFriendlyModelName,
+  PROVIDER_META,
+  ProviderBrandIcon,
+} from './ProviderBrandIcon';
 import { desktopApi } from '../lib/bridge';
 import type { AppSettings, ProviderConfig, ProviderId } from '@shared/types';
 
@@ -34,7 +38,7 @@ function detectCrossProviderPaste(
 ): { targetId: ProviderId; targetName: string } | null {
   const k = rawKey.trim();
   if (!k) return null;
-  if (k.startsWith('AIza') && currentId !== 'google') {
+  if ((k.startsWith('AIza') || k.startsWith('AQ.')) && currentId !== 'google') {
     return { targetId: 'google', targetName: 'Google Gemini' };
   }
   if (k.startsWith('sk-ant-') && currentId !== 'anthropic') {
@@ -432,7 +436,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       >
                         {(currentProvider?.availableModels ?? []).map((m) => (
                           <option key={m} value={m}>
-                            {m}
+                            {formatFriendlyModelName(m)}
                           </option>
                         ))}
                       </select>
@@ -447,10 +451,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         {isTesting ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-                            Discovering Live {meta.shortName} Models...
+                            Connecting to {meta.shortName}...
                           </>
                         ) : currentProvider?.isVerified && !currentKeyInput.trim() ? (
-                          `Use ${currentProvider.displayName} (${currentSelectedModel})`
+                          `Use ${currentProvider.displayName} · ${formatFriendlyModelName(currentSelectedModel)}`
                         ) : (
                           `Verify & Connect ${meta.shortName}`
                         )}

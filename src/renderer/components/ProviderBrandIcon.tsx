@@ -12,63 +12,79 @@ export interface ProviderVisualMeta {
   badgeClass: string;
 }
 
+export function formatFriendlyModelName(modelId: string): string {
+  if (!modelId) return 'Default Model';
+  if (modelId === 'auradesk-interactive-studio') return 'Practice Mode';
+
+  const clean = modelId.replace(/^models\//, '').replace(/^[a-z0-9-]+\//i, '');
+  return clean
+    .split(/[-_]+/)
+    .map((part) => {
+      if (/^gpt$/i.test(part)) return 'GPT';
+      if (/^o\d/i.test(part)) return part.toLowerCase();
+      if (/^\d/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(' ');
+}
+
 export const PROVIDER_META: Record<ProviderId, ProviderVisualMeta> = {
   google: {
     id: 'google',
-    shortName: 'Gemini',
-    tagline: 'Google AI Studio · Fast multimodal reasoning & long context',
-    keyPlaceholder: 'AIzaSy...',
-    keyPrefixHint: 'Starts with AIza...',
-    docsLabel: 'Get free Gemini key in Google AI Studio',
+    shortName: 'Google Gemini',
+    tagline: 'Fast, smart everyday assistant from Google',
+    keyPlaceholder: 'AIzaSy... or AQ...',
+    keyPrefixHint: 'Starts with AIza... or AQ...',
+    docsLabel: 'Get a free Google Gemini key',
     docsUrl: 'https://aistudio.google.com/app/apikey',
     badgeClass: 'bg-[#E8F1FF] text-[#0B57D0] dark:bg-[#152847] dark:text-[#7CACF8]',
   },
   openai: {
     id: 'openai',
-    shortName: 'OpenAI',
-    tagline: 'GPT-4.1, GPT-4o & o-series reasoning models',
+    shortName: 'OpenAI (ChatGPT)',
+    tagline: 'GPT-4.1, GPT-4o & reasoning models',
     keyPlaceholder: 'sk-proj-...',
     keyPrefixHint: 'Starts with sk-...',
-    docsLabel: 'Get OpenAI API key',
+    docsLabel: 'Get an OpenAI key',
     docsUrl: 'https://platform.openai.com/api-keys',
     badgeClass: 'bg-[#E6F6F1] text-[#0F766E] dark:bg-[#112C28] dark:text-[#5EEAD4]',
   },
   anthropic: {
     id: 'anthropic',
-    shortName: 'Claude',
-    tagline: 'Anthropic Claude Sonnet & Haiku writing and analysis',
+    shortName: 'Anthropic Claude',
+    tagline: 'Great for clear writing, summaries & documents',
     keyPlaceholder: 'sk-ant-api03-...',
     keyPrefixHint: 'Starts with sk-ant-...',
-    docsLabel: 'Get Anthropic Console API key',
+    docsLabel: 'Get an Anthropic key',
     docsUrl: 'https://console.anthropic.com/settings/keys',
     badgeClass: 'bg-[#FDF0E7] text-[#B54708] dark:bg-[#2F1E14] dark:text-[#FDBA74]',
   },
   openrouter: {
     id: 'openrouter',
     shortName: 'OpenRouter',
-    tagline: 'One unified key for 200+ frontier & open-weight models',
+    tagline: 'Use one key to access 200+ AI models',
     keyPlaceholder: 'sk-or-v1-...',
     keyPrefixHint: 'Starts with sk-or-...',
-    docsLabel: 'Create OpenRouter key',
+    docsLabel: 'Get an OpenRouter key',
     docsUrl: 'https://openrouter.ai/keys',
     badgeClass: 'bg-[#EEF0FF] text-[#4338CA] dark:bg-[#1E1F42] dark:text-[#A5B4FC]',
   },
   ollama: {
     id: 'ollama',
-    shortName: 'Local Ollama',
-    tagline: 'Runs 100% offline on your PC hardware — zero API cost',
+    shortName: 'Local AI (Offline)',
+    tagline: 'Runs privately on your own computer via Ollama — free',
     keyPlaceholder: '',
-    keyPrefixHint: 'No key needed (127.0.0.1:11434)',
-    docsLabel: 'Download Ollama for Windows / Mac',
+    keyPrefixHint: 'No key needed',
+    docsLabel: 'Download Ollama',
     docsUrl: 'https://ollama.com/download',
     badgeClass: 'bg-[#E6F7FD] text-[#0369A1] dark:bg-[#102A3B] dark:text-[#7DD3FC]',
   },
   demo: {
     id: 'demo',
-    shortName: 'Demo Studio',
-    tagline: 'Interactive built-in walkthrough of Canvas, Memory & Folders',
+    shortName: 'Practice Mode',
+    tagline: 'Try folders, document summaries & notes offline without an API key',
     keyPlaceholder: '',
-    keyPrefixHint: 'Instant — no key required',
+    keyPrefixHint: 'No key needed',
     docsLabel: '',
     docsUrl: '',
     badgeClass: 'bg-accent-soft text-accent',

@@ -304,8 +304,44 @@ export class AuraDatabase {
       .run(JSON.stringify(DEFAULT_PROVIDER_MODELS.google.models));
 
     this.db
-      .prepare(`UPDATE providers SET display_name = 'Guided Demo Studio' WHERE id = 'demo'`)
+      .prepare(`UPDATE providers SET display_name = 'Offline Practice Mode' WHERE id = 'demo'`)
       .run();
+
+    // Clean out any non-chat slugs and migrate restricted gemini-4-* defaults on saved Google rows
+    const googleRow = this.db
+      .prepare(`SELECT selected_model, available_models_json FROM providers WHERE id = 'google'`)
+      .get() as { selected_model?: string; available_models_json?: string } | undefined;
+    if (googleRow?.available_models_json) {
+      try {
+        const parsed = JSON.parse(googleRow.available_models_json) as string[];
+        const cleaned = parsed.filter(
+          (m) => !/image|transcribe|tts|embedding|veo|imagen|customtools|robotics|audio|live/i.test(m)
+        );
+        const preferredFlash =
+          cleaned.find((m) => m === 'gemini-3.6-flash') ||
+          cleaned.find((m) => m === 'gemini-3.8-flash') ||
+          cleaned.find((m) => m.includes('-flash') && !m.startsWith('gemini-4-')) ||
+          cleaned[0];
+        const needsModelHeal =
+          !googleRow.selected_model ||
+          !cleaned.includes(googleRow.selected_model) ||
+          googleRow.selected_model.startsWith('gemini-4-') ||
+          googleRow.selected_model === 'gemini-2.5-flash';
+
+        if (cleaned.length > 0 && (cleaned.length !== parsed.length || needsModelHeal)) {
+          const safeSelected = needsModelHeal
+            ? preferredFlash || 'gemini-3.8-flash'
+            : googleRow.selected_model!;
+          // Put safeSelected at the front of available_models_json for clarity
+          const reordered = [safeSelected, ...cleaned.filter((m) => m !== safeSelected)];
+          this.db
+            .prepare(`UPDATE providers SET selected_model = ?, available_models_json = ? WHERE id = 'google'`)
+            .run(safeSelected, JSON.stringify(reordered));
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     // Seed 1-Click Workflow Studio cards
     const insertWorkflow = this.db.prepare(`

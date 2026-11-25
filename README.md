@@ -77,9 +77,9 @@ flowchart LR
 ### For Everyday Users (Zero Terminal)
 1. Go to the [**Releases**](https://github.com/syedabdulkareempersonal-sketch/nexus-harness/releases/latest) page.
 2. Download the 1-click installer for your computer:
-   - **Windows:** `AuraDesk-Setup-1.1.0.exe`
-   - **macOS (Apple Silicon & Intel Universal):** `AuraDesk-1.1.0-Universal.dmg`
-   - **Linux:** `AuraDesk-1.1.0-x86_64.AppImage`
+   - **Windows:** `AuraDesk-Setup-1.2.0.exe`
+   - **macOS (Apple Silicon & Intel Universal):** `AuraDesk-1.2.0-Universal.dmg`
+   - **Linux:** `AuraDesk-1.2.0-x86_64.AppImage`
 3. Open **AuraDesk**, paste 1 API key (AuraDesk automatically discovers every live model on your account!) or click **Auto-Detect Local AI**, and start working!
 
 ### For Developers & Contributors
@@ -104,15 +104,15 @@ npm run dist:linux  # Linux .AppImage
 
 ---
 
-## Publishing a New GitHub Release (`v1.0.0`)
+## Publishing a New GitHub Release (`v1.2.0`)
 
 AuraDesk includes a pre-configured GitHub Actions pipeline in [`.github/workflows/release.yml`](.github/workflows/release.yml). Pushing any `v*` tag automatically builds and attaches the Windows `.exe`, macOS Universal `.dmg`, and Linux `.AppImage` installers to a public GitHub Release:
 
 ```bash
 git remote add origin https://github.com/syedabdulkareempersonal-sketch/nexus-harness.git
 git push -u origin main
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 ---

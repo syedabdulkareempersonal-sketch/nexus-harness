@@ -4,7 +4,7 @@ import path from 'node:path';
 import Papa from 'papaparse';
 import mammoth from 'mammoth';
 import { extractText } from 'unpdf';
-import { tool, type CoreTool } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { assertAllowedPath } from '../security/pathGuard';
 import type { AllowedFolder, FileAttachment, ToolActivity } from '@shared/types';
@@ -114,12 +114,12 @@ export async function parseDocumentBuffer(params: {
 export function buildDocumentTools(ctx: {
   getAllowedFolders: () => AllowedFolder[];
   emitActivity: (activity: ToolActivity) => void;
-}): Record<string, CoreTool> {
+}): ToolSet {
   return {
     analyze_document_file: tool({
       description:
         'Extracts text, tables, and key numbers from a PDF (.pdf), Word document (.docx), Spreadsheet (.csv/.tsv), or text document inside a shared folder.',
-      parameters: z.object({
+      inputSchema: z.object({
         filePath: z.string().describe('Full path to the PDF, DOCX, CSV, or text file inside a shared folder'),
       }),
       execute: async ({ filePath }) => {
@@ -128,7 +128,7 @@ export function buildDocumentTools(ctx: {
         ctx.emitActivity({
           id: activityId,
           toolName: 'analyze_document_file',
-          friendlyLabel: `Analyzing document "${fileName}"...`,
+          friendlyLabel: `Reading "${fileName}"...`,
           status: 'running',
         });
 

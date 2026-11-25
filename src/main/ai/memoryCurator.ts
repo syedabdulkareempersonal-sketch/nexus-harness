@@ -1,4 +1,4 @@
-import { generateText, type LanguageModelV1 } from 'ai';
+import { generateText, type LanguageModel } from 'ai';
 import type { MemoryCategory, MemoryItem, SaveMemoryInput } from '@shared/types';
 
 interface CandidateFact {
@@ -56,7 +56,6 @@ export function extractDeterministicMemories(userText: string): CandidateFact[] 
   for (const rule of DETERMINISTIC_PATTERNS) {
     const match = userText.match(rule.regex);
     if (match && match[1]) {
-      // Avoid matching generic phrases like "I am looking for"
       const captured = match[1].trim();
       if (/^(looking|trying|going|asking|wondering|having|using|here)\b/i.test(captured)) {
         continue;
@@ -77,7 +76,7 @@ export async function curateMemoriesFromTurn(params: {
   assistantText: string;
   existingMemories: MemoryItem[];
   saveMemory: (input: SaveMemoryInput) => MemoryItem;
-  model?: LanguageModelV1 | null;
+  model?: LanguageModel | null;
 }): Promise<MemoryItem[]> {
   const created: MemoryItem[] = [];
   const currentMemories = [...params.existingMemories];
@@ -102,8 +101,7 @@ export async function curateMemoriesFromTurn(params: {
     try {
       const { text } = await generateText({
         model: params.model,
-        maxTokens: 180,
-        temperature: 0.1,
+        maxOutputTokens: 180,
         system:
           'You extract at most ONE durable personal fact, preference, or ongoing project explicitly shared by the user so an assistant can remember it across future sessions. If the user did not share any durable personal preference, identity, or ongoing project, reply with NONE. Otherwise reply with JSON only: {"content":"short plain-English note","category":"About You"|"Preferences"|"Projects"|"Important"}',
         prompt: `User message: ${params.userText.slice(0, 800)}`,

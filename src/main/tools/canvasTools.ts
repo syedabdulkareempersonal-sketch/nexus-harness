@@ -1,4 +1,4 @@
-import { tool, type CoreTool } from 'ai';
+import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import type { ArtifactItem, ArtifactKind, SaveArtifactInput, ToolActivity } from '@shared/types';
 
@@ -9,30 +9,33 @@ export interface CanvasToolContext {
   emitActivity: (activity: ToolActivity) => void;
 }
 
-export function buildCanvasTools(ctx: CanvasToolContext): Record<string, CoreTool> {
+export function buildCanvasTools(ctx: CanvasToolContext): ToolSet {
   return {
     open_in_canvas: tool({
       description:
-        'Opens a clean right-side Split-View Canvas containing a formatted report, polished document, Markdown table, standalone interactive HTML webpage, or code artifact so the user can preview, edit, copy, or export to PDF/Markdown/HTML in 1 click.',
-      parameters: z.object({
-        title: z.string().describe('Clear, human-friendly document or artifact title'),
+        'Opens a clean right-side Document Canvas containing a formatted report, polished document, Markdown table, standalone interactive HTML webpage, or code file so the user can read, edit, copy, or export to PDF/Markdown/HTML in 1 click. Only call this when producing a substantial document, table, webpage, or code—not for short everyday chat replies.',
+      inputSchema: z.object({
+        title: z.string().describe('Clear, human-friendly document title'),
         kind: z
           .enum(['markdown', 'html', 'table', 'code'])
-          .describe('Use "markdown" for reports/guides/letters, "table" for Markdown tables, "html" for complete self-contained HTML pages, or "code" for source code'),
+          .describe(
+            'Use "markdown" for reports/guides/letters, "table" for Markdown tables, "html" for complete self-contained HTML pages, or "code" for source code'
+          ),
         content: z
           .string()
           .describe('Full, complete content of the report, table, HTML page, or code'),
         language: z
           .string()
+          .nullable()
           .optional()
-          .describe('Programming language when kind is "code" (e.g. typescript, python)'),
+          .describe('Programming language when kind is "code", otherwise null'),
       }),
       execute: async ({ title, kind, content, language }) => {
         const activityId = `act-${Date.now()}-canvas`;
         ctx.emitActivity({
           id: activityId,
           toolName: 'open_in_canvas',
-          friendlyLabel: `Opening "${title}" in the Canvas...`,
+          friendlyLabel: `Opening "${title}" in Document View...`,
           status: 'running',
         });
 
@@ -49,7 +52,7 @@ export function buildCanvasTools(ctx: CanvasToolContext): Record<string, CoreToo
         ctx.emitActivity({
           id: activityId,
           toolName: 'open_in_canvas',
-          friendlyLabel: `Opened "${title}" in Canvas`,
+          friendlyLabel: `Opened "${title}"`,
           status: 'completed',
         });
 
@@ -57,7 +60,7 @@ export function buildCanvasTools(ctx: CanvasToolContext): Record<string, CoreToo
           artifactId: artifact.id,
           title: artifact.title,
           kind: artifact.kind,
-          note: 'The artifact is now visible in the right-hand Split-View Canvas. Keep your chat message concise and highlight the key takeaways rather than repeating the entire document verbatim.',
+          note: 'The document is now open on the right side of the screen. Give a short, friendly summary in chat without repeating the whole document.',
         };
       },
     }),

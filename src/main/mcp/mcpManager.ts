@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { jsonSchema, tool, type CoreTool } from 'ai';
+import { jsonSchema, tool, type ToolSet } from 'ai';
 import type { AuraDatabase } from '../db/database';
 import type { SafetyGate } from '../security/safetyGate';
 import type { McpServerConfig, McpTestResult, ToolActivity } from '@shared/types';
@@ -27,7 +27,7 @@ function toPlainEnglishMcpError(err: unknown, config: McpServerConfig): string {
     return `Could not reach "${config.url || config.name}". Make sure the connector service is running and the web address is right.`;
   }
   if (/401|403|unauthorized/i.test(raw)) {
-    return `The connector "${config.name}" asked for a valid secret key. Double-check its Secret Key in Superpowers.`;
+    return `The connector "${config.name}" asked for a valid secret key. Double-check its Secret Key in Tools & Folders.`;
   }
   return `Could not connect to "${config.name}": ${raw.slice(0, 160)}`;
 }
@@ -73,7 +73,7 @@ export class McpClientManager {
 
     try {
       const client = new Client(
-        { name: 'AuraDesk', version: '1.0.0' },
+        { name: 'AuraDesk', version: '1.2.0' },
         { capabilities: {} }
       );
 
@@ -181,9 +181,9 @@ export class McpClientManager {
     conversationId: string;
     safetyGate: SafetyGate;
     emitActivity: (activity: ToolActivity) => void;
-  }): Promise<Record<string, CoreTool>> {
+  }): Promise<ToolSet> {
     const servers = this.db.listMcpServers().filter((s) => s.enabled);
-    const out: Record<string, CoreTool> = {};
+    const out: ToolSet = {};
 
     for (const server of servers) {
       if (!this.active.has(server.id)) {
@@ -195,15 +195,21 @@ export class McpClientManager {
 
       for (const mcpTool of conn.tools) {
         const key = sanitizeToolKey(server.name, mcpTool.name);
+        const rawProps = (mcpTool.inputSchema.properties as Record<string, unknown>) ?? {};
+        const nonEmptyProps =
+          Object.keys(rawProps).length > 0
+            ? rawProps
+            : { note: { type: 'string', description: 'Optional note' } };
+
         const schemaObj = {
           type: 'object' as const,
-          properties: (mcpTool.inputSchema.properties as Record<string, unknown>) ?? {},
+          properties: nonEmptyProps,
           required: (mcpTool.inputSchema.required as string[]) ?? undefined,
         };
 
         out[key] = tool({
           description: `[${server.name}] ${mcpTool.description}`,
-          parameters: jsonSchema<Record<string, unknown>>(schemaObj),
+          inputSchema: jsonSchema<Record<string, unknown>>(schemaObj),
           execute: async (args) => {
             const activityId = `act-${Date.now()}-${key}`;
             params.emitActivity({
